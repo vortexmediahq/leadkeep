@@ -142,7 +142,7 @@ export async function fetchLeads(): Promise<Lead[]> {
   return (data as LeadRow[]).map(toLead);
 }
 
-export async function insertLead(id: string, input: LeadInput) {
+export async function submitLead(owner: string, input: LeadInput): Promise<string> {
   const answers: LeadAnswers = {
     jobType: input.jobType,
     description: input.description,
@@ -152,17 +152,24 @@ export async function insertLead(id: string, input: LeadInput) {
     budget: input.budget,
     accessNotes: input.accessNotes,
   };
-  const { error } = await supabase.from("leads").insert({
-    id,
-    link_id: input.linkId,
-    source: input.source,
-    customer_name: input.name,
-    phone: input.phone,
-    email: input.email,
-    address: input.address,
-    answers,
+  const { data, error } = await supabase.rpc("submit_lead", {
+    p_owner: owner,
+    p_link_id: input.linkId,
+    p_source: input.source,
+    p_name: input.name,
+    p_phone: input.phone,
+    p_email: input.email,
+    p_address: input.address,
+    p_answers: answers,
   });
-  if (error) fail("send your request", error);
+  if (error || typeof data !== "string") fail("send your request", error);
+  return data as string;
+}
+
+export async function fetchPublicServiceNames(owner: string): Promise<string[]> {
+  const { data, error } = await supabase.rpc("public_service_names", { p_owner: owner });
+  if (error || !Array.isArray(data)) fail("load this form", error);
+  return (data as unknown[]).filter((name): name is string => typeof name === "string");
 }
 
 export async function updateLeadRow(id: string, patch: { status?: LeadStatus; quote?: string | null; quoteUpdatedAt?: string | null }) {

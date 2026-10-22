@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LinksRouteImport } from './routes/links'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as QuoteStyleRouteImport } from './routes/quote-style'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LLinkIdRouteImport } from './routes/l.$linkId'
 import { Route as LeadsLeadIdRouteImport } from './routes/leads.$leadId'
 
@@ -26,6 +28,11 @@ const LinksRoute = LinksRouteImport.update({
   path: '/links',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuoteStyleRoute = QuoteStyleRouteImport.update({
   id: '/quote-style',
   path: '/quote-style',
@@ -34,6 +41,11 @@ const QuoteStyleRoute = QuoteStyleRouteImport.update({
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LLinkIdRoute = LLinkIdRouteImport.update({
@@ -50,16 +62,20 @@ const LeadsLeadIdRoute = LeadsLeadIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/links': typeof LinksRoute
+  '/login': typeof LoginRoute
   '/quote-style': typeof QuoteStyleRoute
   '/services': typeof ServicesRoute
+  '/signup': typeof SignupRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/links': typeof LinksRoute
+  '/login': typeof LoginRoute
   '/quote-style': typeof QuoteStyleRoute
   '/services': typeof ServicesRoute
+  '/signup': typeof SignupRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
 }
@@ -67,8 +83,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/links': typeof LinksRoute
+  '/login': typeof LoginRoute
   '/quote-style': typeof QuoteStyleRoute
   '/services': typeof ServicesRoute
+  '/signup': typeof SignupRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
 }
@@ -77,24 +95,30 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/links'
+    | '/login'
     | '/quote-style'
     | '/services'
+    | '/signup'
     | '/l/$linkId'
     | '/leads/$leadId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/links'
+    | '/login'
     | '/quote-style'
     | '/services'
+    | '/signup'
     | '/l/$linkId'
     | '/leads/$leadId'
   id:
     | '__root__'
     | '/'
     | '/links'
+    | '/login'
     | '/quote-style'
     | '/services'
+    | '/signup'
     | '/l/$linkId'
     | '/leads/$leadId'
   fileRoutesById: FileRoutesById
@@ -102,8 +126,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LinksRoute: typeof LinksRoute
+  LoginRoute: typeof LoginRoute
   QuoteStyleRoute: typeof QuoteStyleRoute
   ServicesRoute: typeof ServicesRoute
+  SignupRoute: typeof SignupRoute
   LLinkIdRoute: typeof LLinkIdRoute
   LeadsLeadIdRoute: typeof LeadsLeadIdRoute
 }
@@ -124,6 +150,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LinksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quote-style': {
       id: '/quote-style'
       path: '/quote-style'
@@ -136,6 +169,13 @@ declare module '@tanstack/react-router' {
       path: '/services'
       fullPath: '/services'
       preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/l/$linkId': {
@@ -158,8 +198,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LinksRoute: LinksRoute,
+  LoginRoute: LoginRoute,
   QuoteStyleRoute: QuoteStyleRoute,
   ServicesRoute: ServicesRoute,
+  SignupRoute: SignupRoute,
   LLinkIdRoute: LLinkIdRoute,
   LeadsLeadIdRoute: LeadsLeadIdRoute,
 }

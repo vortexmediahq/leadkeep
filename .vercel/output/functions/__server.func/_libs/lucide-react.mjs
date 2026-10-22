@@ -138,6 +138,29 @@ var Link2 = createLucideIcon("link-2", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var LogOut = createLucideIcon("log-out", [
+	["path", {
+		d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4",
+		key: "1uf3rs"
+	}],
+	["polyline", {
+		points: "16 17 21 12 16 7",
+		key: "1gabdz"
+	}],
+	["line", {
+		x1: "21",
+		x2: "9",
+		y1: "12",
+		y2: "12",
+		key: "1uyos4"
+	}]
+]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var ScrollText = createLucideIcon("scroll-text", [
 	["path", {
 		d: "M15 12h-5",
@@ -187,4 +210,4 @@ var Wrench = createLucideIcon("wrench", [["path", {
 	key: "cbrjhi"
 }]]);
 //#endregion
-export { Inbox as a, Link2 as i, TriangleAlert as n, ChevronLeft as o, ScrollText as r, Check as s, Wrench as t };
+export { Link2 as a, Check as c, LogOut as i, TriangleAlert as n, Inbox as o, ScrollText as r, ChevronLeft as s, Wrench as t };

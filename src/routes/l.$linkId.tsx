@@ -1,15 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
-import { useState, type FormEvent } from "react";
-import { ClientGate } from "@/components/client-gate";
+import { useEffect, useState, type FormEvent } from "react";
 import { Mark } from "@/components/mark";
 import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/fields";
+import { fetchPublicServiceNames, submitLead } from "@/lib/data";
 import { useLeakKeep } from "@/lib/store";
 import { cn, firstName } from "@/lib/utils";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const Route = createFileRoute("/l/$linkId")({
   head: () => ({ meta: [{ title: "Request a quote · LeakKeep" }] }),
+  validateSearch: (search: Record<string, unknown>): { u?: string } =>
+    typeof search.u === "string" && UUID.test(search.u) ? { u: search.u } : {},
   component: PublicPage,
 });
 
@@ -26,20 +30,61 @@ function FormSkeleton() {
   );
 }
 
-function PublicPage() {
-  const { linkId } = Route.useParams();
+function FormMessage({ title, body }: { title: string; body: string }) {
   return (
-    <ClientGate fallback={<FormSkeleton />}>
-      <Capture linkId={linkId} />
-    </ClientGate>
+    <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-10">
+      <div className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        <p className="mt-2 text-base text-ink-soft">{body}</p>
+      </div>
+    </main>
   );
 }
 
-function Capture({ linkId }: { linkId: string }) {
+function PublicPage() {
+  const { linkId } = Route.useParams();
+  const { u: owner } = Route.useSearch();
+  const [services, setServices] = useState<string[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    void useLeakKeep.persist.rehydrate();
+  }, []);
+
+  useEffect(() => {
+    if (!owner) return;
+    let live = true;
+    fetchPublicServiceNames(owner)
+      .then((names) => live && setServices(names))
+      .catch(() => live && setFailed(true));
+    return () => {
+      live = false;
+    };
+  }, [owner]);
+
+  if (!owner) {
+    return (
+      <FormMessage
+        title="This link isn't active"
+        body="Ask the business for a fresh link to request a quote."
+      />
+    );
+  }
+  if (failed) {
+    return (
+      <FormMessage
+        title="The form couldn't load"
+        body="Check your connection and refresh the page to try again."
+      />
+    );
+  }
+  if (!services) return <FormSkeleton />;
+  return <Capture linkId={linkId} owner={owner} serviceNames={services} />;
+}
+
+function Capture({ linkId, owner, serviceNames }: { linkId: string; owner: string; serviceNames: string[] }) {
   const link = useLeakKeep((state) => state.links.find((item) => item.id === linkId));
   const business = useLeakKeep((state) => state.business);
-  const services = useLeakKeep((state) => state.services);
-  const addLead = useLeakKeep((state) => state.addLead);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -54,12 +99,11 @@ function Capture({ linkId }: { linkId: string }) {
   const [budget, setBudget] = useState("");
   const [accessNotes, setAccessNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [done, setDone] = useState<{ id: string; name: string } | null>(null);
+  const [done, setDone] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
 
   const tradeLine = [business.trade, business.city].filter(Boolean).join(" · ");
-  const serviceNames = services.map((service) => service.name).filter(Boolean);
 
   // Customers open this page on their own device, which has no saved link list.
   const active = link ?? { id: linkId, source: linkId.charAt(0).toUpperCase() + linkId.slice(1) };
@@ -79,22 +123,22 @@ function Capture({ linkId }: { linkId: string }) {
     setSending(true);
     setSendError("");
     try {
-      const id = await addLead({
-      linkId: active.id,
-      source: active.source,
-      name: name.trim(),
-      phone: phone.trim(),
-      email: email.trim(),
-      address: address.trim(),
-      jobType: jobType === "Something else" ? customJob.trim() : jobType,
-      description: description.trim(),
-      urgency,
-      preferredTime,
-      propertyType,
-      budget: budget.trim(),
-      accessNotes: accessNotes.trim(),
+      await submitLead(owner, {
+        linkId: active.id,
+        source: active.source,
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        address: address.trim(),
+        jobType: jobType === "Something else" ? customJob.trim() : jobType,
+        description: description.trim(),
+        urgency,
+        preferredTime,
+        propertyType,
+        budget: budget.trim(),
+        accessNotes: accessNotes.trim(),
       });
-      setDone({ id, name: name.trim() });
+      setDone(name.trim());
     } catch {
       setSendError("Your request didn't go through. Check your connection and try again.");
     } finally {
@@ -111,13 +155,8 @@ function Capture({ linkId }: { linkId: string }) {
           </span>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">Request received</h1>
           <p className="mt-2 text-base text-ink-soft">
-            {firstName(done.name)}, {business.name || "the business"} has the details and will be in touch.
+            {firstName(done)}, {business.name || "the business"} has the details and will be in touch.
           </p>
-          <Button asChild className="mt-6 w-full">
-            <Link to="/leads/$leadId" params={{ leadId: done.id }}>
-              View this lead
-            </Link>
-          </Button>
         </div>
       </main>
     );

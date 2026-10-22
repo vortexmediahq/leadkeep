@@ -5,15 +5,14 @@ import {
   fetchLeads,
   fetchServices,
   fetchTemplate,
-  insertLead,
   insertServices,
   saveTemplate,
   updateLeadRow,
   updateServiceRow,
   type StoredTemplate,
 } from "@/lib/data";
-import { seedBusiness, seedLinks, seedTemplate } from "@/lib/seed";
-import type { Business, Lead, LeadInput, LeadLink, LeadStatus, QuoteTemplate, Service } from "@/lib/types";
+import { seedBusiness, seedLinks, seedTemplate, starterServices } from "@/lib/seed";
+import type { Business, Lead, LeadLink, LeadStatus, QuoteTemplate, Service } from "@/lib/types";
 
 const SAVE_DELAY_MS = 600;
 
@@ -23,9 +22,11 @@ type LeakState = {
   links: LeadLink[];
   template: StoredTemplate;
   leads: Lead[];
+  loadedFor: string | null;
   loadError: string;
   saveError: string;
-  load: () => Promise<void>;
+  load: (userId: string) => Promise<void>;
+  reset: () => void;
   clearSaveError: () => void;
   updateBusiness: (patch: Partial<Business>) => void;
   updateTemplate: (patch: Partial<QuoteTemplate>) => void;
@@ -36,7 +37,6 @@ type LeakState = {
   addLink: (source: string, id: string) => void;
   updateLink: (id: string, source: string) => void;
   removeLink: (id: string) => void;
-  addLead: (input: LeadInput) => Promise<string>;
   updateLead: (id: string, patch: Pick<Lead, "quote" | "quoteUpdatedAt">) => void;
   setStatus: (id: string, status: LeadStatus) => void;
 };
@@ -67,21 +67,34 @@ export const useLeakKeep = create<LeakState>()(
         );
       };
 
+      const blank = { ...seedTemplate, id: null };
+
       return {
         business: seedBusiness,
         services: [],
         links: seedLinks,
-        template: { ...seedTemplate, id: null },
+        template: blank,
         leads: [],
+        loadedFor: null,
         loadError: "",
         saveError: "",
-        load: async () => {
+        load: async (userId) => {
           try {
-            const [services, template, leads] = await Promise.all([fetchServices(), fetchTemplate(), fetchLeads()]);
-            set({ services, leads, loadError: "", ...(template ? { template } : {}) });
+            let [services, template, leads] = await Promise.all([fetchServices(), fetchTemplate(), fetchLeads()]);
+            if (!template && services.length === 0) {
+              services = starterServices.map((item) => ({ ...item, id: crypto.randomUUID() }));
+              await insertServices(services);
+              template = { ...blank, id: await saveTemplate(blank) };
+            }
+            set({ services, leads, template: template ?? blank, loadedFor: userId, loadError: "" });
           } catch (error) {
             set({ loadError: message(error) });
           }
+        },
+        reset: () => {
+          timers.forEach((timer) => clearTimeout(timer));
+          timers.clear();
+          set({ services: [], leads: [], template: blank, loadedFor: null, loadError: "", saveError: "" });
         },
         clearSaveError: () => set({ saveError: "" }),
         updateBusiness: (patch) => set((state) => ({ business: { ...state.business, ...patch } })),
@@ -132,20 +145,6 @@ export const useLeakKeep = create<LeakState>()(
             links: state.links.map((link) => (link.id === id ? { ...link, source } : link)),
           })),
         removeLink: (id) => set((state) => ({ links: state.links.filter((link) => link.id !== id) })),
-        addLead: async (input) => {
-          const id = crypto.randomUUID();
-          await insertLead(id, input);
-          const lead: Lead = {
-            ...input,
-            id,
-            status: "new",
-            createdAt: new Date().toISOString(),
-            quote: null,
-            quoteUpdatedAt: null,
-          };
-          set((state) => ({ leads: [lead, ...state.leads] }));
-          return id;
-        },
         updateLead: (id, patch) => {
           set((state) => ({
             leads: state.leads.map((lead) => (lead.id === id ? { ...lead, ...patch } : lead)),

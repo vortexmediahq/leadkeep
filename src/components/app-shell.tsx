@@ -1,8 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Inbox, Link2, ScrollText, Wrench } from "lucide-react";
-import type { ReactNode } from "react";
+import { Inbox, Link2, LogOut, ScrollText, Wrench } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { ClientGate } from "@/components/client-gate";
 import { Mark } from "@/components/mark";
+import { signOut, useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -64,11 +65,34 @@ function NavItem({
   );
 }
 
+function LogoutButton({ compact }: { compact?: boolean }) {
+  const [pending, setPending] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={() => {
+        setPending(true);
+        void signOut().finally(() => setPending(false));
+      }}
+      aria-label="Log out"
+      className={cn(
+        "press inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-muted hover:bg-mist hover:text-ink disabled:opacity-60",
+        compact ? "min-w-11 justify-center px-2" : "w-full px-3",
+      )}
+    >
+      <LogOut className="size-5" strokeWidth={1.75} aria-hidden="true" />
+      {compact ? null : <span>{pending ? "Logging out…" : "Log out"}</span>}
+    </button>
+  );
+}
+
 function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const business = useLeakKeep((state) => state.business);
   const fresh = useLeakKeep((state) => state.leads.filter((lead) => lead.status === "new").length);
   const saveError = useLeakKeep((state) => state.saveError);
+  const email = useSession((state) => state.user?.email ?? "");
   const clearSaveError = useLeakKeep((state) => state.clearSaveError);
 
   return (
@@ -91,9 +115,16 @@ function Shell({ children }: { children: ReactNode }) {
             />
           ))}
         </nav>
-        <div className="mt-auto border-t border-line px-4 py-4">
-          <p className="truncate text-sm font-medium">{business.name}</p>
-          <p className="truncate text-sm text-muted">{business.city || "Your service area"}</p>
+        <div className="mt-auto border-t border-line px-3 py-4">
+          <div className="px-1">
+            <p className="truncate text-sm font-medium">{business.name}</p>
+            <p className="truncate text-sm text-muted" title={email}>
+              {email}
+            </p>
+          </div>
+          <div className="mt-3">
+            <LogoutButton />
+          </div>
         </div>
       </aside>
 
@@ -101,10 +132,11 @@ function Shell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-10 border-b border-line bg-paper px-4 py-3 md:hidden">
           <div className="flex items-center gap-3">
             <Mark className="size-8" />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold tracking-tight">LeakKeep</p>
               <p className="truncate text-sm text-muted">{business.name}</p>
             </div>
+            <LogoutButton compact />
           </div>
         </header>
         <main className="px-4 py-6 pb-28 md:px-8 md:py-8 md:pb-10">

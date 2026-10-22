@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Field, TextInput } from "@/components/ui/fields";
+import { useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
 import { slugify } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ function LinksDesk() {
   const addLink = useLeakKeep((state) => state.addLink);
   const updateLink = useLeakKeep((state) => state.updateLink);
   const removeLink = useLeakKeep((state) => state.removeLink);
+  const ownerId = useSession((state) => state.user?.id ?? "");
   const [source, setSource] = useState("");
   const [formError, setFormError] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
@@ -56,7 +58,7 @@ function LinksDesk() {
   }
 
   async function copy(id: string) {
-    const url = `${origin}/l/${id}`;
+    const url = `${origin}/l/${id}?u=${ownerId}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(id);
@@ -150,7 +152,7 @@ function LinksDesk() {
       ) : (
         <ul className="flex flex-col gap-4">
           {links.map((link) => {
-            const path = `/l/${link.id}`;
+            const path = `/l/${link.id}?u=${ownerId}`;
             const url = origin ? `${origin}${path}` : path;
             return (
               <li key={link.id} className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
@@ -168,7 +170,7 @@ function LinksDesk() {
                     {copied === link.id ? "Copied" : "Copy link"}
                   </Button>
                   <Button size="sm" variant="secondary" asChild>
-                    <Link to="/l/$linkId" params={{ linkId: link.id }}>
+                    <Link to="/l/$linkId" params={{ linkId: link.id }} search={{ u: ownerId }}>
                       Open form
                     </Link>
                   </Button>
