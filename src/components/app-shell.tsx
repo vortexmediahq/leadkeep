@@ -1,0 +1,137 @@
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Inbox, Link2, ScrollText, Wrench } from "lucide-react";
+import type { ReactNode } from "react";
+import { ClientGate } from "@/components/client-gate";
+import { Mark } from "@/components/mark";
+import { useLeakKeep } from "@/lib/store";
+import { cn } from "@/lib/utils";
+
+const NAV = [
+  { to: "/", label: "Leads", icon: Inbox, match: (path: string) => path === "/" || path.startsWith("/leads") },
+  { to: "/services", label: "Services", icon: Wrench, match: (path: string) => path.startsWith("/services") },
+  {
+    to: "/quote-style",
+    label: "Quote style",
+    icon: ScrollText,
+    match: (path: string) => path.startsWith("/quote-style"),
+  },
+  { to: "/links", label: "Links", icon: Link2, match: (path: string) => path.startsWith("/links") },
+] as const;
+
+function ShellSkeleton() {
+  return (
+    <div className="min-h-screen bg-mist">
+      <header className="border-b border-line bg-paper px-4 py-4">
+        <p className="text-base font-semibold tracking-tight">LeakKeep</p>
+        <p className="text-sm text-muted">Loading your lead desk</p>
+      </header>
+    </div>
+  );
+}
+
+function NavItem({
+  to,
+  label,
+  icon: Icon,
+  active,
+  count,
+  stacked,
+}: {
+  to: (typeof NAV)[number]["to"];
+  label: string;
+  icon: (typeof NAV)[number]["icon"];
+  active: boolean;
+  count?: number;
+  stacked?: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "press flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium",
+        stacked && "min-h-16 flex-1 flex-col justify-center gap-1 px-1 text-xs",
+        active ? "bg-primary-soft text-primary" : "text-muted hover:bg-mist hover:text-ink",
+        stacked && active && "bg-transparent",
+      )}
+    >
+      <Icon className="size-5" strokeWidth={1.75} aria-hidden="true" />
+      <span className={cn("flex items-center gap-2 whitespace-nowrap", stacked && "gap-1")}>
+        {label}
+        {count ? <span className="tabular-nums">{count}</span> : null}
+      </span>
+    </Link>
+  );
+}
+
+function Shell({ children }: { children: ReactNode }) {
+  const path = useRouterState({ select: (state) => state.location.pathname });
+  const business = useLeakKeep((state) => state.business);
+  const fresh = useLeakKeep((state) => state.leads.filter((lead) => lead.status === "new").length);
+
+  return (
+    <div className="min-h-screen bg-mist md:flex">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-paper md:flex">
+        <div className="flex items-center gap-3 px-4 py-5">
+          <Mark />
+          <div>
+            <p className="text-base font-semibold tracking-tight">LeakKeep</p>
+            <p className="text-sm text-muted">Lead desk</p>
+          </div>
+        </div>
+        <nav className="flex flex-col gap-1 px-3" aria-label="Desk">
+          {NAV.map((item) => (
+            <NavItem
+              key={item.to}
+              {...item}
+              active={item.match(path)}
+              count={item.to === "/" ? fresh : undefined}
+            />
+          ))}
+        </nav>
+        <div className="mt-auto border-t border-line px-4 py-4">
+          <p className="truncate text-sm font-medium">{business.name}</p>
+          <p className="truncate text-sm text-muted">{business.city || "Your service area"}</p>
+        </div>
+      </aside>
+
+      <div className="min-w-0 flex-1">
+        <header className="sticky top-0 z-10 border-b border-line bg-paper px-4 py-3 md:hidden">
+          <div className="flex items-center gap-3">
+            <Mark className="size-8" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold tracking-tight">LeakKeep</p>
+              <p className="truncate text-sm text-muted">{business.name}</p>
+            </div>
+          </div>
+        </header>
+        <main className="px-4 py-6 pb-28 md:px-8 md:py-8 md:pb-10">{children}</main>
+      </div>
+
+      <nav
+        className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper md:hidden"
+        aria-label="Desk"
+      >
+        <div className="flex">
+          {NAV.map((item) => (
+            <NavItem
+              key={item.to}
+              {...item}
+              stacked
+              active={item.match(path)}
+              count={item.to === "/" ? fresh : undefined}
+            />
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <ClientGate fallback={<ShellSkeleton />}>
+      <Shell>{children}</Shell>
+    </ClientGate>
+  );
+}
