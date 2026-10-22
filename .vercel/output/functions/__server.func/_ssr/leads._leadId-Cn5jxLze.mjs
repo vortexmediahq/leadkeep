@@ -2,14 +2,14 @@ import { i as __toESM } from "../_runtime.mjs";
 import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
 import { S as require_jsx_runtime, b as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { o as ChevronLeft } from "../_libs/lucide-react.mjs";
-import { n as Route } from "./router-XuJ7f6lI.mjs";
-import { a as TextArea, d as useLeakKeep, i as SelectInput, s as cn } from "./fields-CleTNQx1.mjs";
-import { t as Button } from "./button-CXjZ6N1h.mjs";
+import { n as Route } from "./router-CIuwgEj1.mjs";
+import { a as TextArea, d as useLeakKeep, i as SelectInput, s as cn } from "./fields-9FC-irLv.mjs";
+import { t as Button } from "./button-BCzTNtt4.mjs";
 import { n as TSS_SERVER_FUNCTION, r as getServerFnById, t as createServerFn } from "./ssr.mjs";
-import { t as AppShell } from "./app-shell-DZys6Ba0.mjs";
-import { n as StatusBadge, t as STATUSES } from "./status-badge-BnZ9r74a.mjs";
+import { t as AppShell } from "./app-shell-DvyEtrYI.mjs";
+import { n as StatusBadge, t as STATUSES } from "./status-badge-Db6qe6Ua.mjs";
 import { n as format, t as formatDistanceToNow } from "../_libs/date-fns.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/leads._leadId-B0AsSkyW.js
+//#region node_modules/.nitro/vite/services/ssr/assets/leads._leadId-Cn5jxLze.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var createSsrRpc = (functionId) => {
@@ -99,11 +99,11 @@ function LeadDetail({ leadId }) {
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
 				className: "text-2xl font-semibold tracking-tight",
-				children: "This lead isn't on this desk"
+				children: "We couldn't find this lead"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 				className: "mt-2 text-sm text-muted",
-				children: "It may have been opened on another browser."
+				children: "The link may be out of date."
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
 				to: "/",

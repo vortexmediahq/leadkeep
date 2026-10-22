@@ -2,10 +2,10 @@ import { i as __toESM } from "../_runtime.mjs";
 import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
 import { S as require_jsx_runtime, b as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { s as Check } from "../_libs/lucide-react.mjs";
-import { r as Route$1 } from "./router-XuJ7f6lI.mjs";
-import { a as TextArea, c as firstName, d as useLeakKeep, i as SelectInput, n as Field, o as TextInput, r as Mark, s as cn, t as ClientGate } from "./fields-CleTNQx1.mjs";
-import { t as Button } from "./button-CXjZ6N1h.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/l._linkId-BEGO2BHI.js
+import { r as Route$1 } from "./router-CIuwgEj1.mjs";
+import { a as TextArea, c as firstName, d as useLeakKeep, i as SelectInput, n as Field, o as TextInput, r as Mark, s as cn, t as ClientGate } from "./fields-9FC-irLv.mjs";
+import { t as Button } from "./button-BCzTNtt4.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/l._linkId-pGAJ0ICo.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var URGENCY = [
@@ -62,29 +62,15 @@ function Capture({ linkId }) {
 	const [accessNotes, setAccessNotes] = (0, import_react.useState)("");
 	const [errors, setErrors] = (0, import_react.useState)({});
 	const [done, setDone] = (0, import_react.useState)(null);
+	const [sending, setSending] = (0, import_react.useState)(false);
+	const [sendError, setSendError] = (0, import_react.useState)("");
 	const tradeLine = [business.trade, business.city].filter(Boolean).join(" · ");
 	const serviceNames = services.map((service) => service.name).filter(Boolean);
-	if (!link) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", {
-		className: "mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-10",
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Mark, {}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
-				className: "mt-4 text-2xl font-semibold tracking-tight",
-				children: "This link isn't active"
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "mt-2 text-sm text-muted",
-				children: "Ask the business for a new one."
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-				to: "/",
-				className: "mt-6 inline-flex text-sm font-medium text-primary",
-				children: "Open lead desk"
-			})
-		]
-	});
-	const active = link;
-	const submit = (event) => {
+	const active = link ?? {
+		id: linkId,
+		source: linkId.charAt(0).toUpperCase() + linkId.slice(1)
+	};
+	const submit = async (event) => {
 		event.preventDefault();
 		const next = {};
 		if (!name.trim()) next.name = "Add your name.";
@@ -95,25 +81,33 @@ function Capture({ linkId }) {
 		if (!urgency) next.urgency = "Choose how soon you need someone.";
 		setErrors(next);
 		if (Object.keys(next).length) return;
-		const id = addLead({
-			linkId: active.id,
-			source: active.source,
-			name: name.trim(),
-			phone: phone.trim(),
-			email: email.trim(),
-			address: address.trim(),
-			jobType: jobType === "Something else" ? customJob.trim() : jobType,
-			description: description.trim(),
-			urgency,
-			preferredTime,
-			propertyType,
-			budget: budget.trim(),
-			accessNotes: accessNotes.trim()
-		});
-		setDone({
-			id,
-			name: name.trim()
-		});
+		setSending(true);
+		setSendError("");
+		try {
+			const id = await addLead({
+				linkId: active.id,
+				source: active.source,
+				name: name.trim(),
+				phone: phone.trim(),
+				email: email.trim(),
+				address: address.trim(),
+				jobType: jobType === "Something else" ? customJob.trim() : jobType,
+				description: description.trim(),
+				urgency,
+				preferredTime,
+				propertyType,
+				budget: budget.trim(),
+				accessNotes: accessNotes.trim()
+			});
+			setDone({
+				id,
+				name: name.trim()
+			});
+		} catch {
+			setSendError("Your request didn't go through. Check your connection and try again.");
+		} finally {
+			setSending(false);
+		}
 	};
 	if (done) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("main", {
 		className: "mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-10",
@@ -169,7 +163,7 @@ function Capture({ linkId }) {
 				})]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-				onSubmit: submit,
+				onSubmit: (event) => void submit(event),
 				className: "rounded-3xl border border-line bg-paper p-4 shadow-panel",
 				noValidate: true,
 				children: [
@@ -321,10 +315,16 @@ function Capture({ linkId }) {
 									onChange: (event) => setAccessNotes(event.target.value)
 								})
 							}),
+							sendError ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-sm text-lost",
+								role: "alert",
+								children: sendError
+							}) : null,
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								type: "submit",
 								className: "w-full",
-								children: "Send job details"
+								disabled: sending,
+								children: sending ? "Sending…" : "Send job details"
 							})
 						]
 					})

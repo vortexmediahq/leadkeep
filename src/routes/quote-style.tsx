@@ -67,7 +67,7 @@ function QuoteStyle() {
           />
         </Field>
       </div>
-      <p className="text-sm text-muted">Saved on this device as you type.</p>
+      <p className="text-sm text-muted">Saved automatically as you type.</p>
     </div>
   );
 }

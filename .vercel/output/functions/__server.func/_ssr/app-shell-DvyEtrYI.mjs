@@ -1,7 +1,7 @@
 import { S as require_jsx_runtime, b as Link, p as useRouterState } from "../_libs/@tanstack/react-router+[...].mjs";
 import { a as Inbox, i as Link2, r as ScrollText, t as Wrench } from "../_libs/lucide-react.mjs";
-import { d as useLeakKeep, r as Mark, s as cn, t as ClientGate } from "./fields-CleTNQx1.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/app-shell-DZys6Ba0.js
+import { d as useLeakKeep, r as Mark, s as cn, t as ClientGate } from "./fields-9FC-irLv.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/app-shell-DvyEtrYI.js
 var import_jsx_runtime = require_jsx_runtime();
 var NAV = [
 	{
@@ -66,6 +66,8 @@ function Shell({ children }) {
 	const path = useRouterState({ select: (state) => state.location.pathname });
 	const business = useLeakKeep((state) => state.business);
 	const fresh = useLeakKeep((state) => state.leads.filter((lead) => lead.status === "new").length);
+	const saveError = useLeakKeep((state) => state.saveError);
+	const clearSaveError = useLeakKeep((state) => state.clearSaveError);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "min-h-screen bg-mist md:flex",
 		children: [
@@ -120,9 +122,18 @@ function Shell({ children }) {
 							})]
 						})]
 					})
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("main", {
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", {
 					className: "px-4 py-6 pb-28 md:px-8 md:py-8 md:pb-10",
-					children
+					children: [saveError ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						role: "alert",
+						className: "mx-auto mb-5 flex max-w-5xl items-start justify-between gap-3 rounded-2xl border border-lost/30 bg-paper px-4 py-3 text-sm text-lost",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [saveError, " Your last change may not be saved."] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: clearSaveError,
+							className: "press shrink-0 font-medium",
+							children: "Dismiss"
+						})]
+					}) : null, children]
 				})]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", {

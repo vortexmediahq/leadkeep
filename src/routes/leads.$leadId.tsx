@@ -46,8 +46,8 @@ function LeadDetail({ leadId }: { leadId: string }) {
   if (!lead) {
     return (
       <div className="mx-auto max-w-3xl">
-        <h1 className="text-2xl font-semibold tracking-tight">This lead isn't on this desk</h1>
-        <p className="mt-2 text-sm text-muted">It may have been opened on another browser.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">We couldn't find this lead</h1>
+        <p className="mt-2 text-sm text-muted">The link may be out of date.</p>
         <Link to="/" className="mt-4 inline-flex text-sm font-medium text-primary">
           Back to leads
         </Link>

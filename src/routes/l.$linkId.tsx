@@ -55,26 +55,16 @@ function Capture({ linkId }: { linkId: string }) {
   const [accessNotes, setAccessNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [done, setDone] = useState<{ id: string; name: string } | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
 
   const tradeLine = [business.trade, business.city].filter(Boolean).join(" · ");
   const serviceNames = services.map((service) => service.name).filter(Boolean);
 
-  if (!link) {
-    return (
-      <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-10">
-        <Mark />
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight">This link isn't active</h1>
-        <p className="mt-2 text-sm text-muted">Ask the business for a new one.</p>
-        <Link to="/" className="mt-6 inline-flex text-sm font-medium text-primary">
-          Open lead desk
-        </Link>
-      </main>
-    );
-  }
+  // Customers open this page on their own device, which has no saved link list.
+  const active = link ?? { id: linkId, source: linkId.charAt(0).toUpperCase() + linkId.slice(1) };
 
-  const active = link;
-
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = "Add your name.";
@@ -86,7 +76,10 @@ function Capture({ linkId }: { linkId: string }) {
     setErrors(next);
     if (Object.keys(next).length) return;
 
-    const id = addLead({
+    setSending(true);
+    setSendError("");
+    try {
+      const id = await addLead({
       linkId: active.id,
       source: active.source,
       name: name.trim(),
@@ -100,8 +93,13 @@ function Capture({ linkId }: { linkId: string }) {
       propertyType,
       budget: budget.trim(),
       accessNotes: accessNotes.trim(),
-    });
-    setDone({ id, name: name.trim() });
+      });
+      setDone({ id, name: name.trim() });
+    } catch {
+      setSendError("Your request didn't go through. Check your connection and try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
   if (done) {
@@ -135,7 +133,7 @@ function Capture({ linkId }: { linkId: string }) {
         </div>
       </header>
 
-      <form onSubmit={submit} className="rounded-3xl border border-line bg-paper p-4 shadow-panel" noValidate>
+      <form onSubmit={(event) => void submit(event)} className="rounded-3xl border border-line bg-paper p-4 shadow-panel" noValidate>
         <h1 className="text-2xl font-semibold tracking-tight">Request a quote</h1>
         <p className="mt-1 text-sm text-muted">Tell us about the job. {business.name || "We"} will come back with a price.</p>
 
@@ -214,8 +212,9 @@ function Capture({ linkId }: { linkId: string }) {
               onChange={(event) => setAccessNotes(event.target.value)}
             />
           </Field>
-          <Button type="submit" className="w-full">
-            Send job details
+          {sendError ? <p className="text-sm text-lost" role="alert">{sendError}</p> : null}
+          <Button type="submit" className="w-full" disabled={sending}>
+            {sending ? "Sending…" : "Send job details"}
           </Button>
         </div>
       </form>

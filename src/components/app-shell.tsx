@@ -68,6 +68,8 @@ function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const business = useLeakKeep((state) => state.business);
   const fresh = useLeakKeep((state) => state.leads.filter((lead) => lead.status === "new").length);
+  const saveError = useLeakKeep((state) => state.saveError);
+  const clearSaveError = useLeakKeep((state) => state.clearSaveError);
 
   return (
     <div className="min-h-screen bg-mist md:flex">
@@ -105,7 +107,20 @@ function Shell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="px-4 py-6 pb-28 md:px-8 md:py-8 md:pb-10">{children}</main>
+        <main className="px-4 py-6 pb-28 md:px-8 md:py-8 md:pb-10">
+          {saveError ? (
+            <div
+              role="alert"
+              className="mx-auto mb-5 flex max-w-5xl items-start justify-between gap-3 rounded-2xl border border-lost/30 bg-paper px-4 py-3 text-sm text-lost"
+            >
+              <p>{saveError} Your last change may not be saved.</p>
+              <button type="button" onClick={clearSaveError} className="press shrink-0 font-medium">
+                Dismiss
+              </button>
+            </div>
+          ) : null}
+          {children}
+        </main>
       </div>
 
       <nav

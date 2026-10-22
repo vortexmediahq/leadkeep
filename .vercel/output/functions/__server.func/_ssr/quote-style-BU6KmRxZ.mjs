@@ -1,7 +1,7 @@
 import { S as require_jsx_runtime } from "../_libs/@tanstack/react-router+[...].mjs";
-import { a as TextArea, d as useLeakKeep, n as Field } from "./fields-CleTNQx1.mjs";
-import { t as AppShell } from "./app-shell-DZys6Ba0.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/quote-style--PVerE4v.js
+import { a as TextArea, d as useLeakKeep, n as Field } from "./fields-9FC-irLv.mjs";
+import { t as AppShell } from "./app-shell-DvyEtrYI.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/quote-style-BU6KmRxZ.js
 var import_jsx_runtime = require_jsx_runtime();
 function QuoteStylePage() {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AppShell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(QuoteStyle, {}) });
@@ -74,7 +74,7 @@ function QuoteStyle() {
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 				className: "text-sm text-muted",
-				children: "Saved on this device as you type."
+				children: "Saved automatically as you type."
 			})
 		]
 	});
