@@ -1,15 +1,11 @@
-import type { Business, LeadLink, QuoteTemplate, Service } from "@/lib/types";
+import type { Business, QuoteTemplate, Service } from "@/lib/types";
 
-function hoursAgo(hours: number) {
-  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-}
-
-export const seedBusiness: Business = {
-  name: "Northline Plumbing",
-  trade: "Plumbing, geysers, and leak repair",
-  city: "Johannesburg",
-  phone: "011 555 0142",
-  email: "quotes@northline.example",
+export const blankBusiness: Business = {
+  name: "",
+  trade: "",
+  city: "",
+  phone: "",
+  email: "",
   currency: "R",
 };
 
@@ -46,12 +42,7 @@ export const starterServices: Omit<Service, "id">[] = [
   },
 ];
 
-export const seedLinks: LeadLink[] = [
-  { id: "facebook", source: "Facebook Ad", createdAt: hoursAgo(24 * 20) },
-  { id: "google", source: "Google Business", createdAt: hoursAgo(24 * 18) },
-  { id: "website", source: "Website", createdAt: hoursAgo(24 * 12) },
-  { id: "instagram", source: "Instagram", createdAt: hoursAgo(24 * 8) },
-];
+export const starterLinkSources = ["Facebook Ad", "Google Business", "Website", "Instagram"];
 
 export const seedTemplate: QuoteTemplate = {
   tone: "Direct, calm, and specific. Sound like the owner, not a call centre. Use the customer's first name once. No hype and no exclamation marks.",

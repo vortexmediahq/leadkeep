@@ -3,13 +3,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import { startSessionListener, useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
 
-let rehydrated: Promise<void> | null = null;
-
-function rehydrateLocal() {
-  rehydrated ??= Promise.resolve(useLeakKeep.persist.rehydrate()).catch(() => undefined);
-  return rehydrated;
-}
-
 export function ClientGate({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
   const navigate = useNavigate();
   const status = useSession((state) => state.status);
@@ -35,8 +28,9 @@ export function ClientGate({ children, fallback }: { children: ReactNode; fallba
     let live = true;
     setLoading(true);
     useLeakKeep.getState().reset();
-    void rehydrateLocal()
-      .then(() => useLeakKeep.getState().load(userId))
+    void useLeakKeep
+      .getState()
+      .load(userId)
       .finally(() => {
         if (live) setLoading(false);
       });
@@ -44,6 +38,18 @@ export function ClientGate({ children, fallback }: { children: ReactNode; fallba
       live = false;
     };
   }, [userId, loadedFor, attempt]);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") void useLeakKeep.getState().refreshLeads();
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
 
   if (loadError && !loading) {
     return (

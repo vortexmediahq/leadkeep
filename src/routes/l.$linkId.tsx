@@ -4,36 +4,47 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Mark } from "@/components/mark";
 import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/fields";
-import { fetchPublicServiceNames, submitLead } from "@/lib/data";
-import { useLeakKeep } from "@/lib/store";
+import { fetchPublicForm, submitLeadViaLink, type PublicForm } from "@/lib/data";
 import { cn, firstName } from "@/lib/utils";
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const Route = createFileRoute("/l/$linkId")({
   head: () => ({ meta: [{ title: "Request a quote · LeakKeep" }] }),
-  validateSearch: (search: Record<string, unknown>): { u?: string } =>
-    typeof search.u === "string" && UUID.test(search.u) ? { u: search.u } : {},
   component: PublicPage,
 });
 
 const URGENCY = ["Emergency", "This week", "Flexible"];
 const PROPERTY = ["House", "Apartment", "Business"];
 const TIMES = ["Morning", "Afternoon", "Evening", "Anytime"];
+const SLUG = /^[a-z0-9]{6,32}$/;
+const FIELD_IDS: Record<string, string> = {
+  name: "cust-name",
+  phone: "cust-phone",
+  job: "cust-job",
+  customJob: "cust-custom",
+  description: "cust-desc",
+  urgency: "cust-urgency",
+};
 
 function FormSkeleton() {
   return (
-    <div className="min-h-screen bg-mist px-4 py-8">
-      <p className="text-base font-semibold tracking-tight">Request a quote</p>
-      <p className="mt-1 text-sm text-muted">Loading the form</p>
-    </div>
+    <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col px-4 py-8" aria-busy="true">
+      <div className="mb-6 flex items-center gap-3">
+        <span className="size-10 animate-pulse rounded-xl bg-line" />
+        <div className="flex flex-col gap-2">
+          <span className="h-4 w-40 animate-pulse rounded bg-line" />
+          <span className="h-3 w-28 animate-pulse rounded bg-line" />
+        </div>
+      </div>
+      <div className="h-96 animate-pulse rounded-3xl border border-line bg-paper" />
+      <p className="sr-only">Loading the form</p>
+    </main>
   );
 }
 
 function FormMessage({ title, body }: { title: string; body: string }) {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-10">
-      <div className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
+      <div className="rounded-3xl border border-line bg-paper p-6 shadow-panel">
         <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
         <p className="mt-2 text-base text-ink-soft">{body}</p>
       </div>
@@ -41,51 +52,39 @@ function FormMessage({ title, body }: { title: string; body: string }) {
   );
 }
 
+type Loaded = { state: "loading" } | { state: "missing" } | { state: "failed" } | { state: "ready"; form: PublicForm };
+
 function PublicPage() {
   const { linkId } = Route.useParams();
-  const { u: owner } = Route.useSearch();
-  const [services, setServices] = useState<string[] | null>(null);
-  const [failed, setFailed] = useState(false);
+  const slug = linkId.toLowerCase();
+  const valid = SLUG.test(slug);
+  const [loaded, setLoaded] = useState<Loaded>({ state: "loading" });
+  const [round, setRound] = useState(0);
 
   useEffect(() => {
-    void useLeakKeep.persist.rehydrate();
-  }, []);
-
-  useEffect(() => {
-    if (!owner) return;
+    if (!valid) return;
     let live = true;
-    fetchPublicServiceNames(owner)
-      .then((names) => live && setServices(names))
-      .catch(() => live && setFailed(true));
+    setLoaded({ state: "loading" });
+    fetchPublicForm(slug)
+      .then((form) => live && setLoaded(form ? { state: "ready", form } : { state: "missing" }))
+      .catch(() => live && setLoaded({ state: "failed" }));
     return () => {
       live = false;
     };
-  }, [owner]);
+  }, [slug, valid]);
 
-  if (!owner) {
-    return (
-      <FormMessage
-        title="This link isn't active"
-        body="Ask the business for a fresh link to request a quote."
-      />
-    );
+  if (!valid || loaded.state === "missing") {
+    return <FormMessage title="This link isn't active" body="Ask the business for a fresh link to request a quote." />;
   }
-  if (failed) {
-    return (
-      <FormMessage
-        title="The form couldn't load"
-        body="Check your connection and refresh the page to try again."
-      />
-    );
+  if (loaded.state === "failed") {
+    return <FormMessage title="The form couldn't load" body="Check your connection and refresh the page to try again." />;
   }
-  if (!services) return <FormSkeleton />;
-  return <Capture linkId={linkId} owner={owner} serviceNames={services} />;
+  if (loaded.state === "loading") return <FormSkeleton />;
+  return <Capture key={round} slug={slug} form={loaded.form} onAnother={() => setRound((value) => value + 1)} />;
 }
 
-function Capture({ linkId, owner, serviceNames }: { linkId: string; owner: string; serviceNames: string[] }) {
-  const link = useLeakKeep((state) => state.links.find((item) => item.id === linkId));
-  const business = useLeakKeep((state) => state.business);
-
+function Capture({ slug, form, onAnother }: { slug: string; form: PublicForm; onAnother: () => void }) {
+  const { business, services: serviceNames } = form;
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -105,9 +104,6 @@ function Capture({ linkId, owner, serviceNames }: { linkId: string; owner: strin
 
   const tradeLine = [business.trade, business.city].filter(Boolean).join(" · ");
 
-  // Customers open this page on their own device, which has no saved link list.
-  const active = link ?? { id: linkId, source: linkId.charAt(0).toUpperCase() + linkId.slice(1) };
-
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const next: Record<string, string> = {};
@@ -118,14 +114,20 @@ function Capture({ linkId, owner, serviceNames }: { linkId: string; owner: strin
     if (description.trim().length < 8) next.description = "A sentence or two is enough.";
     if (!urgency) next.urgency = "Choose how soon you need someone.";
     setErrors(next);
-    if (Object.keys(next).length) return;
+    const first = Object.keys(next)[0];
+    if (first) {
+      const target = document.getElementById(FIELD_IDS[first] ?? "");
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+        target.focus({ preventScroll: true });
+      }
+      return;
+    }
 
     setSending(true);
     setSendError("");
     try {
-      await submitLead(owner, {
-        linkId: active.id,
-        source: active.source,
+      await submitLeadViaLink(slug, {
         name: name.trim(),
         phone: phone.trim(),
         email: email.trim(),
@@ -139,8 +141,13 @@ function Capture({ linkId, owner, serviceNames }: { linkId: string; owner: strin
         accessNotes: accessNotes.trim(),
       });
       setDone(name.trim());
-    } catch {
-      setSendError("Your request didn't go through. Check your connection and try again.");
+    } catch (error) {
+      const busy = error instanceof Error && error.message.includes("Too many requests");
+      setSendError(
+        busy
+          ? "This form is getting a lot of requests right now. Wait a few minutes and try again."
+          : "Your request didn't go through. Check your connection and try again.",
+      );
     } finally {
       setSending(false);
     }
@@ -149,21 +156,24 @@ function Capture({ linkId, owner, serviceNames }: { linkId: string; owner: strin
   if (done) {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-10">
-        <div className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
+        <div className="rounded-3xl border border-line bg-paper p-6 shadow-panel">
           <span className="grid size-12 place-items-center rounded-full bg-primary-soft text-primary">
             <Check className="size-6" aria-hidden="true" />
           </span>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">Request received</h1>
           <p className="mt-2 text-base text-ink-soft">
-            {firstName(done)}, {business.name || "the business"} has the details and will be in touch.
+            Thanks {firstName(done)}. {business.name || "The business"} has your details and will be in touch soon.
           </p>
+          <Button variant="secondary" className="mt-6 w-full" onClick={onAnother}>
+            Send another request
+          </Button>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col px-4 py-8">
+    <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col px-4 py-6 sm:py-10">
       <header className="mb-6 flex items-center gap-3">
         <Mark />
         <div className="min-w-0">
@@ -172,9 +182,11 @@ function Capture({ linkId, owner, serviceNames }: { linkId: string; owner: strin
         </div>
       </header>
 
-      <form onSubmit={(event) => void submit(event)} className="rounded-3xl border border-line bg-paper p-4 shadow-panel" noValidate>
+      <form onSubmit={(event) => void submit(event)} className="rounded-3xl border border-line bg-paper p-4 shadow-panel sm:p-6" noValidate>
         <h1 className="text-2xl font-semibold tracking-tight">Request a quote</h1>
-        <p className="mt-1 text-sm text-muted">Tell us about the job. {business.name || "We"} will come back with a price.</p>
+        <p className="mt-1 text-sm text-muted">
+          Tell us about the job. {business.name || "We"} will come back with a price. Takes about a minute.
+        </p>
 
         <div className="mt-5 flex flex-col gap-5">
           <Field id="cust-name" label="Your name" error={errors.name}>
@@ -237,7 +249,7 @@ function Capture({ linkId, owner, serviceNames }: { linkId: string; owner: strin
               onChange={(event) => setDescription(event.target.value)}
             />
           </Field>
-          <ChoiceGroup label="How soon?" options={URGENCY} value={urgency} onChange={setUrgency} error={errors.urgency} />
+          <ChoiceGroup id="cust-urgency" label="How soon?" options={URGENCY} value={urgency} onChange={setUrgency} error={errors.urgency} />
           <ChoiceGroup label="Property" options={PROPERTY} value={propertyType} onChange={setPropertyType} />
           <ChoiceGroup label="Best time to come" options={TIMES} value={preferredTime} onChange={setPreferredTime} />
           <Field id="cust-budget" label="Budget, if you have one" hint="Optional.">
@@ -257,18 +269,20 @@ function Capture({ linkId, owner, serviceNames }: { linkId: string; owner: strin
           </Button>
         </div>
       </form>
-      <p className="mt-6 text-center text-sm text-muted">No account needed · LeakKeep</p>
+      <p className="mt-6 text-center text-sm text-muted">No account needed · Powered by LeakKeep</p>
     </main>
   );
 }
 
 function ChoiceGroup({
+  id,
   label,
   options,
   value,
   onChange,
   error,
 }: {
+  id?: string;
   label: string;
   options: string[];
   value: string;
@@ -276,7 +290,7 @@ function ChoiceGroup({
   error?: string;
 }) {
   return (
-    <fieldset>
+    <fieldset id={id}>
       <legend className="mb-2 text-sm font-medium text-ink">{label}</legend>
       <div className={cn("grid gap-2", options.length === 4 ? "grid-cols-2" : "grid-cols-3")}>
         {options.map((option) => {

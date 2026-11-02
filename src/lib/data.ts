@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { Lead, LeadInput, LeadStatus, QuoteTemplate, Service } from "@/lib/types";
+import type { Business, Lead, LeadInput, LeadLink, LeadStatus, QuoteTemplate, Service } from "@/lib/types";
 
 type ServiceRow = { id: string; name: string; description: string; price: string; notes: string };
 
@@ -31,6 +31,9 @@ type LeadRow = {
   quote_updated_at: string | null;
   created_at: string;
 };
+
+const LEAD_COLUMNS =
+  "id, link_id, source, customer_name, phone, email, address, answers, status, quote, quote_updated_at, created_at";
 
 export type StoredTemplate = QuoteTemplate & { id: string | null };
 
@@ -136,13 +139,34 @@ export async function saveTemplate(template: StoredTemplate): Promise<string> {
 export async function fetchLeads(): Promise<Lead[]> {
   const { data, error } = await supabase
     .from("leads")
-    .select("id, link_id, source, customer_name, phone, email, address, answers, status, quote, quote_updated_at, created_at")
+    .select(LEAD_COLUMNS)
     .order("created_at", { ascending: false });
   if (error || !data) fail("load leads", error);
   return (data as LeadRow[]).map(toLead);
 }
 
-export async function submitLead(owner: string, input: LeadInput): Promise<string> {
+export type PublicForm = {
+  source: string;
+  business: { name: string; trade: string; city: string };
+  services: string[];
+};
+
+const text = (value: unknown) => (typeof value === "string" ? value : "");
+
+export async function fetchPublicForm(slug: string): Promise<PublicForm | null> {
+  const { data, error } = await supabase.rpc("public_lead_form", { p_slug: slug });
+  if (error) fail("load this form", error);
+  if (!data || typeof data !== "object") return null;
+  const form = data as { source?: unknown; business?: Record<string, unknown>; services?: unknown };
+  const business = form.business ?? {};
+  return {
+    source: text(form.source),
+    business: { name: text(business.name), trade: text(business.trade), city: text(business.city) },
+    services: Array.isArray(form.services) ? form.services.filter((name): name is string => typeof name === "string") : [],
+  };
+}
+
+export async function submitLeadViaLink(slug: string, input: Omit<LeadInput, "linkId" | "source">): Promise<string> {
   const answers: LeadAnswers = {
     jobType: input.jobType,
     description: input.description,
@@ -152,10 +176,8 @@ export async function submitLead(owner: string, input: LeadInput): Promise<strin
     budget: input.budget,
     accessNotes: input.accessNotes,
   };
-  const { data, error } = await supabase.rpc("submit_lead", {
-    p_owner: owner,
-    p_link_id: input.linkId,
-    p_source: input.source,
+  const { data, error } = await supabase.rpc("submit_lead_via_link", {
+    p_slug: slug,
     p_name: input.name,
     p_phone: input.phone,
     p_email: input.email,
@@ -166,10 +188,77 @@ export async function submitLead(owner: string, input: LeadInput): Promise<strin
   return data as string;
 }
 
-export async function fetchPublicServiceNames(owner: string): Promise<string[]> {
-  const { data, error } = await supabase.rpc("public_service_names", { p_owner: owner });
-  if (error || !Array.isArray(data)) fail("load this form", error);
-  return (data as unknown[]).filter((name): name is string => typeof name === "string");
+export async function fetchLeadById(id: string): Promise<Lead | null> {
+  const { data, error } = await supabase.from("leads").select(LEAD_COLUMNS).eq("id", id).maybeSingle();
+  if (error) fail("load the new lead", error);
+  return data ? toLead(data as LeadRow) : null;
+}
+
+export function subscribeToNewLeads(userId: string, onLead: (id: string) => void): () => void {
+  const channel = supabase
+    .channel(`leads:${userId}`)
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "leads", filter: `user_id=eq.${userId}` },
+      (payload) => {
+        const id = (payload.new as { id?: unknown }).id;
+        if (typeof id === "string") onLead(id);
+      },
+    )
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
+type ProfileRow = { name: string; trade: string; city: string; phone: string; email: string; currency: string };
+
+export async function fetchProfile(): Promise<Business | null> {
+  const { data, error } = await supabase
+    .from("business_profiles")
+    .select("name, trade, city, phone, email, currency")
+    .maybeSingle();
+  if (error) fail("load your business details", error);
+  return data ? (data as ProfileRow) : null;
+}
+
+export async function saveProfile(business: Business) {
+  const { error } = await supabase
+    .from("business_profiles")
+    .upsert({ ...business, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  if (error) fail("save your business details", error);
+}
+
+type LinkRow = { id: string; slug: string; source: string; created_at: string };
+
+const toLink = (row: LinkRow): LeadLink => ({ id: row.id, slug: row.slug, source: row.source, createdAt: row.created_at });
+
+export async function fetchLinks(): Promise<LeadLink[]> {
+  const { data, error } = await supabase
+    .from("lead_links")
+    .select("id, slug, source, created_at")
+    .order("created_at", { ascending: false });
+  if (error || !data) fail("load your links", error);
+  return (data as LinkRow[]).map(toLink);
+}
+
+export async function insertLinks(sources: string[]): Promise<LeadLink[]> {
+  const { data, error } = await supabase
+    .from("lead_links")
+    .insert(sources.map((source) => ({ source })))
+    .select("id, slug, source, created_at");
+  if (error || !data) fail("create the link", error);
+  return (data as LinkRow[]).map(toLink);
+}
+
+export async function updateLinkSource(id: string, source: string) {
+  const { error } = await supabase.from("lead_links").update({ source }).eq("id", id);
+  if (error) fail("rename the link", error);
+}
+
+export async function deleteLinkRow(id: string) {
+  const { error } = await supabase.from("lead_links").delete().eq("id", id);
+  if (error) fail("remove the link", error);
 }
 
 export async function updateLeadRow(id: string, patch: { status?: LeadStatus; quote?: string | null; quoteUpdatedAt?: string | null }) {

@@ -14,12 +14,3 @@ export function oneLine(value: string, max = 96) {
 export function firstName(name: string) {
   return name.trim().split(/\s+/)[0] || name;
 }
-
-export function slugify(value: string) {
-  const base = value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 32);
-  return base || "link";
-}

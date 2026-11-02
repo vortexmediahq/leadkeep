@@ -27,6 +27,7 @@ export type Service = {
 
 export type LeadLink = {
   id: string;
+  slug: string;
   source: string;
   createdAt: string;
 };

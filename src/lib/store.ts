@@ -1,20 +1,28 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import {
+  deleteLinkRow,
   deleteServiceRow,
+  fetchLeadById,
   fetchLeads,
+  fetchLinks,
+  fetchProfile,
   fetchServices,
   fetchTemplate,
+  insertLinks,
   insertServices,
+  saveProfile,
   saveTemplate,
+  subscribeToNewLeads,
   updateLeadRow,
+  updateLinkSource,
   updateServiceRow,
   type StoredTemplate,
 } from "@/lib/data";
-import { seedBusiness, seedLinks, seedTemplate, starterServices } from "@/lib/seed";
+import { blankBusiness, seedTemplate, starterLinkSources, starterServices } from "@/lib/seed";
 import type { Business, Lead, LeadLink, LeadStatus, QuoteTemplate, Service } from "@/lib/types";
 
 const SAVE_DELAY_MS = 600;
+const LEGACY_KEY = "leakkeep.v1";
 
 type LeakState = {
   business: Business;
@@ -22,19 +30,22 @@ type LeakState = {
   links: LeadLink[];
   template: StoredTemplate;
   leads: Lead[];
+  incoming: Lead | null;
   loadedFor: string | null;
   loadError: string;
   saveError: string;
   load: (userId: string) => Promise<void>;
+  refreshLeads: () => Promise<void>;
   reset: () => void;
   clearSaveError: () => void;
+  dismissIncoming: () => void;
   updateBusiness: (patch: Partial<Business>) => void;
   updateTemplate: (patch: Partial<QuoteTemplate>) => void;
   addService: () => void;
   updateService: (id: string, patch: Partial<Omit<Service, "id">>) => void;
   removeService: (id: string) => void;
   importServices: (items: Omit<Service, "id">[]) => number;
-  addLink: (source: string, id: string) => void;
+  addLink: (source: string) => Promise<void>;
   updateLink: (id: string, source: string) => void;
   removeLink: (id: string) => void;
   updateLead: (id: string, patch: Pick<Lead, "quote" | "quoteUpdatedAt">) => void;
@@ -43,134 +54,202 @@ type LeakState = {
 
 const message = (error: unknown) => (error instanceof Error ? error.message : "Something went wrong saving.");
 
-export const useLeakKeep = create<LeakState>()(
-  persist(
-    (set, get) => {
-      const timers = new Map<string, ReturnType<typeof setTimeout>>();
+// Business details and link names were kept on the device before accounts existed.
+function readLegacy(): { business: Partial<Business>; sources: string[] } {
+  try {
+    const raw = window.localStorage.getItem(LEGACY_KEY);
+    const state = raw ? (JSON.parse(raw) as { state?: { business?: unknown; links?: unknown } }).state : undefined;
+    const business = state?.business && typeof state.business === "object" ? (state.business as Partial<Business>) : {};
+    const sources = Array.isArray(state?.links)
+      ? state.links
+          .map((link) => (link && typeof link === "object" ? (link as { source?: unknown }).source : ""))
+          .filter((source): source is string => typeof source === "string" && source.trim().length > 0)
+      : [];
+    return { business, sources };
+  } catch {
+    return { business: {}, sources: [] };
+  }
+}
 
-      const run = (task: () => Promise<unknown>) => {
-        task().then(
-          () => set({ saveError: "" }),
-          (error) => set({ saveError: message(error) }),
-        );
-      };
+export const useLeakKeep = create<LeakState>()((set, get) => {
+  const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  let unsubscribe: (() => void) | null = null;
 
-      const later = (key: string, task: () => Promise<unknown>) => {
-        const pending = timers.get(key);
-        if (pending) clearTimeout(pending);
-        timers.set(
-          key,
-          setTimeout(() => {
-            timers.delete(key);
-            run(task);
-          }, SAVE_DELAY_MS),
-        );
-      };
+  const run = (task: () => Promise<unknown>) => {
+    task().then(
+      () => set({ saveError: "" }),
+      (error) => set({ saveError: message(error) }),
+    );
+  };
 
-      const blank = { ...seedTemplate, id: null };
+  const later = (key: string, task: () => Promise<unknown>) => {
+    const pending = timers.get(key);
+    if (pending) clearTimeout(pending);
+    timers.set(
+      key,
+      setTimeout(() => {
+        timers.delete(key);
+        run(task);
+      }, SAVE_DELAY_MS),
+    );
+  };
 
-      return {
-        business: seedBusiness,
+  const cancel = (key: string) => {
+    const pending = timers.get(key);
+    if (pending) clearTimeout(pending);
+    timers.delete(key);
+  };
+
+  const mergeNew = (incoming: Lead[]) => {
+    const known = new Set(get().leads.map((lead) => lead.id));
+    const fresh = incoming.filter((lead) => !known.has(lead.id));
+    if (!fresh.length) return;
+    set((state) => ({
+      leads: [...fresh, ...state.leads].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      incoming: fresh[0],
+    }));
+  };
+
+  const blank = { ...seedTemplate, id: null };
+
+  return {
+    business: blankBusiness,
+    services: [],
+    links: [],
+    template: blank,
+    leads: [],
+    incoming: null,
+    loadedFor: null,
+    loadError: "",
+    saveError: "",
+    load: async (userId) => {
+      try {
+        let [services, template, leads, profile, links] = await Promise.all([
+          fetchServices(),
+          fetchTemplate(),
+          fetchLeads(),
+          fetchProfile(),
+          fetchLinks(),
+        ]);
+        if (!template && services.length === 0) {
+          services = starterServices.map((item) => ({ ...item, id: crypto.randomUUID() }));
+          await insertServices(services);
+          template = { ...blank, id: await saveTemplate(blank) };
+        }
+        if (!profile) {
+          const legacy = readLegacy();
+          profile = { ...blankBusiness, ...legacy.business };
+          await saveProfile(profile);
+          if (links.length === 0) {
+            links = await insertLinks(legacy.sources.length ? legacy.sources : starterLinkSources);
+          }
+        }
+        set({
+          services,
+          leads,
+          links,
+          business: profile,
+          template: template ?? blank,
+          loadedFor: userId,
+          loadError: "",
+        });
+        unsubscribe?.();
+        unsubscribe = subscribeToNewLeads(userId, (id) => {
+          fetchLeadById(id).then(
+            (lead) => lead && mergeNew([lead]),
+            () => undefined,
+          );
+        });
+      } catch (error) {
+        set({ loadError: message(error) });
+      }
+    },
+    refreshLeads: async () => {
+      if (!get().loadedFor) return;
+      try {
+        mergeNew(await fetchLeads());
+      } catch {
+        // A missed refresh is retried on the next focus; the dashboard keeps what it has.
+      }
+    },
+    reset: () => {
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
+      unsubscribe?.();
+      unsubscribe = null;
+      set({
+        business: blankBusiness,
         services: [],
-        links: seedLinks,
-        template: blank,
+        links: [],
         leads: [],
+        incoming: null,
+        template: blank,
         loadedFor: null,
         loadError: "",
         saveError: "",
-        load: async (userId) => {
-          try {
-            let [services, template, leads] = await Promise.all([fetchServices(), fetchTemplate(), fetchLeads()]);
-            if (!template && services.length === 0) {
-              services = starterServices.map((item) => ({ ...item, id: crypto.randomUUID() }));
-              await insertServices(services);
-              template = { ...blank, id: await saveTemplate(blank) };
-            }
-            set({ services, leads, template: template ?? blank, loadedFor: userId, loadError: "" });
-          } catch (error) {
-            set({ loadError: message(error) });
-          }
-        },
-        reset: () => {
-          timers.forEach((timer) => clearTimeout(timer));
-          timers.clear();
-          set({ services: [], leads: [], template: blank, loadedFor: null, loadError: "", saveError: "" });
-        },
-        clearSaveError: () => set({ saveError: "" }),
-        updateBusiness: (patch) => set((state) => ({ business: { ...state.business, ...patch } })),
-        updateTemplate: (patch) => {
-          set((state) => ({ template: { ...state.template, ...patch } }));
-          later("template", async () => {
-            const id = await saveTemplate(get().template);
-            set((state) => ({ template: { ...state.template, id } }));
-          });
-        },
-        addService: () => {
-          const service: Service = { id: crypto.randomUUID(), name: "", description: "", price: "", notes: "" };
-          set((state) => ({ services: [service, ...state.services] }));
-          run(() => insertServices([service]));
-        },
-        updateService: (id, patch) => {
-          set((state) => ({
-            services: state.services.map((service) => (service.id === id ? { ...service, ...patch } : service)),
-          }));
-          later(`service:${id}`, () => {
-            const current = get().services.find((service) => service.id === id);
-            if (!current) return Promise.resolve();
-            const { name, description, price, notes } = current;
-            return updateServiceRow(id, { name, description, price, notes });
-          });
-        },
-        removeService: (id) => {
-          const pending = timers.get(`service:${id}`);
-          if (pending) clearTimeout(pending);
-          set((state) => ({ services: state.services.filter((service) => service.id !== id) }));
-          run(() => deleteServiceRow(id));
-        },
-        importServices: (items) => {
-          const next = items
-            .filter((item) => item.name.trim())
-            .map((item) => ({ ...item, id: crypto.randomUUID() }));
-          if (!next.length) return 0;
-          set((state) => ({ services: [...next, ...state.services] }));
-          run(() => insertServices(next));
-          return next.length;
-        },
-        addLink: (source, id) =>
-          set((state) => ({
-            links: [{ id, source, createdAt: new Date().toISOString() }, ...state.links],
-          })),
-        updateLink: (id, source) =>
-          set((state) => ({
-            links: state.links.map((link) => (link.id === id ? { ...link, source } : link)),
-          })),
-        removeLink: (id) => set((state) => ({ links: state.links.filter((link) => link.id !== id) })),
-        updateLead: (id, patch) => {
-          set((state) => ({
-            leads: state.leads.map((lead) => (lead.id === id ? { ...lead, ...patch } : lead)),
-          }));
-          later(`lead:${id}`, () => updateLeadRow(id, patch));
-        },
-        setStatus: (id, status) => {
-          set((state) => ({
-            leads: state.leads.map((lead) => (lead.id === id ? { ...lead, status } : lead)),
-          }));
-          run(() => updateLeadRow(id, { status }));
-        },
-      };
+      });
     },
-    {
-      name: "leakkeep.v1",
-      skipHydration: true,
-      partialize: (state) => ({ business: state.business, links: state.links }),
-      merge: (persisted, current) => {
-        const saved = (persisted ?? {}) as Partial<Pick<LeakState, "business" | "links">>;
-        return {
-          ...current,
-          business: { ...current.business, ...saved.business },
-          links: Array.isArray(saved.links) ? saved.links : current.links,
-        };
-      },
+    clearSaveError: () => set({ saveError: "" }),
+    dismissIncoming: () => set({ incoming: null }),
+    updateBusiness: (patch) => {
+      set((state) => ({ business: { ...state.business, ...patch } }));
+      later("business", () => saveProfile(get().business));
     },
-  ),
-);
+    updateTemplate: (patch) => {
+      set((state) => ({ template: { ...state.template, ...patch } }));
+      later("template", async () => {
+        const id = await saveTemplate(get().template);
+        set((state) => ({ template: { ...state.template, id } }));
+      });
+    },
+    addService: () => {
+      const service: Service = { id: crypto.randomUUID(), name: "", description: "", price: "", notes: "" };
+      set((state) => ({ services: [service, ...state.services] }));
+      run(() => insertServices([service]));
+    },
+    updateService: (id, patch) => {
+      set((state) => ({
+        services: state.services.map((service) => (service.id === id ? { ...service, ...patch } : service)),
+      }));
+      later(`service:${id}`, () => {
+        const current = get().services.find((service) => service.id === id);
+        if (!current) return Promise.resolve();
+        const { name, description, price, notes } = current;
+        return updateServiceRow(id, { name, description, price, notes });
+      });
+    },
+    removeService: (id) => {
+      cancel(`service:${id}`);
+      set((state) => ({ services: state.services.filter((service) => service.id !== id) }));
+      run(() => deleteServiceRow(id));
+    },
+    importServices: (items) => {
+      const next = items.filter((item) => item.name.trim()).map((item) => ({ ...item, id: crypto.randomUUID() }));
+      if (!next.length) return 0;
+      set((state) => ({ services: [...next, ...state.services] }));
+      run(() => insertServices(next));
+      return next.length;
+    },
+    addLink: async (source) => {
+      const [link] = await insertLinks([source]);
+      if (link) set((state) => ({ links: [link, ...state.links] }));
+    },
+    updateLink: (id, source) => {
+      set((state) => ({ links: state.links.map((link) => (link.id === id ? { ...link, source } : link)) }));
+      later(`link:${id}`, () => updateLinkSource(id, source));
+    },
+    removeLink: (id) => {
+      cancel(`link:${id}`);
+      set((state) => ({ links: state.links.filter((link) => link.id !== id) }));
+      run(() => deleteLinkRow(id));
+    },
+    updateLead: (id, patch) => {
+      set((state) => ({ leads: state.leads.map((lead) => (lead.id === id ? { ...lead, ...patch } : lead)) }));
+      later(`lead:${id}`, () => updateLeadRow(id, patch));
+    },
+    setStatus: (id, status) => {
+      set((state) => ({ leads: state.leads.map((lead) => (lead.id === id ? { ...lead, status } : lead)) }));
+      run(() => updateLeadRow(id, { status }));
+    },
+  };
+});

@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Inbox, Link2, LogOut, ScrollText, Wrench } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Inbox, Link2, LogOut, ScrollText, Wrench, X } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ClientGate } from "@/components/client-gate";
 import { Mark } from "@/components/mark";
 import { signOut, useSession } from "@/lib/session";
@@ -87,6 +87,50 @@ function LogoutButton({ compact }: { compact?: boolean }) {
   );
 }
 
+function IncomingLead() {
+  const incoming = useLeakKeep((state) => state.incoming);
+  const dismiss = useLeakKeep((state) => state.dismissIncoming);
+
+  useEffect(() => {
+    if (!incoming) return;
+    const timer = window.setTimeout(dismiss, 8000);
+    return () => window.clearTimeout(timer);
+  }, [incoming, dismiss]);
+
+  if (!incoming) return null;
+  return (
+    <div
+      role="status"
+      className="fixed inset-x-4 bottom-24 z-30 mx-auto flex max-w-sm items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3 shadow-panel md:inset-x-auto md:right-6 md:bottom-6"
+    >
+      <span className="size-2 shrink-0 animate-pulse rounded-full bg-primary" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">New lead from {incoming.source || "a lead link"}</p>
+        <p className="truncate text-sm text-muted">
+          {incoming.name}
+          {incoming.jobType ? ` · ${incoming.jobType}` : ""}
+        </p>
+      </div>
+      <Link
+        to="/leads/$leadId"
+        params={{ leadId: incoming.id }}
+        onClick={dismiss}
+        className="press shrink-0 rounded-lg px-2 py-2 text-sm font-medium text-primary hover:bg-mist"
+      >
+        View
+      </Link>
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Dismiss"
+        className="press grid size-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-mist hover:text-ink"
+      >
+        <X className="size-4" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const business = useLeakKeep((state) => state.business);
@@ -117,7 +161,7 @@ function Shell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-auto border-t border-line px-3 py-4">
           <div className="px-1">
-            <p className="truncate text-sm font-medium">{business.name}</p>
+            <p className="truncate text-sm font-medium">{business.name || "Your business"}</p>
             <p className="truncate text-sm text-muted" title={email}>
               {email}
             </p>
@@ -134,7 +178,7 @@ function Shell({ children }: { children: ReactNode }) {
             <Mark className="size-8" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold tracking-tight">LeakKeep</p>
-              <p className="truncate text-sm text-muted">{business.name}</p>
+              <p className="truncate text-sm text-muted">{business.name || email}</p>
             </div>
             <LogoutButton compact />
           </div>
@@ -154,6 +198,8 @@ function Shell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      <IncomingLead />
 
       <nav
         className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper md:hidden"

@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Check, Copy } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Field, TextInput } from "@/components/ui/fields";
-import { useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
-import { slugify } from "@/lib/utils";
+import type { LeadLink } from "@/lib/types";
 
 export const Route = createFileRoute("/links")({
   head: () => ({ meta: [{ title: "Lead links · LeakKeep" }] }),
@@ -27,45 +27,46 @@ function LinksDesk() {
   const addLink = useLeakKeep((state) => state.addLink);
   const updateLink = useLeakKeep((state) => state.updateLink);
   const removeLink = useLeakKeep((state) => state.removeLink);
-  const ownerId = useSession((state) => state.user?.id ?? "");
   const [source, setSource] = useState("");
   const [formError, setFormError] = useState("");
+  const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState("");
+  const [confirming, setConfirming] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
 
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
 
-  function create(event: FormEvent) {
+  async function create(event: FormEvent) {
     event.preventDefault();
     const name = source.trim();
     if (!name) {
       setFormError("Name the place you'll share it, like Facebook Ad.");
       return;
     }
-    const taken = new Set(links.map((link) => link.id));
-    const base = slugify(name);
-    let id = base;
-    let n = 2;
-    while (taken.has(id)) {
-      id = `${base}-${n}`;
-      n += 1;
-    }
-    addLink(name, id);
-    setSource("");
+    setCreating(true);
     setFormError("");
+    try {
+      await addLink(name.slice(0, 120));
+      setSource("");
+    } catch {
+      setFormError("Couldn't create the link. Check your connection and try again.");
+    } finally {
+      setCreating(false);
+    }
   }
 
-  async function copy(id: string) {
-    const url = `${origin}/l/${id}?u=${ownerId}`;
+  async function copy(link: LeadLink) {
     try {
-      await navigator.clipboard.writeText(url);
-      setCopied(id);
-      window.setTimeout(() => setCopied((current) => (current === id ? null : current)), 2000);
+      await navigator.clipboard.writeText(`${origin}/l/${link.slug}`);
+      setCopyError("");
+      setCopied(link.id);
+      window.setTimeout(() => setCopied((current) => (current === link.id ? null : current)), 2000);
     } catch {
       setCopied(null);
-      setFormError("Couldn't copy. Select the link and copy it manually.");
+      setCopyError("Couldn't copy. Select the link and copy it manually.");
     }
   }
 
@@ -80,7 +81,7 @@ function LinksDesk() {
 
       <section className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
         <h2 className="text-lg font-semibold tracking-tight">Your business</h2>
-        <p className="mt-1 text-sm text-muted">Shown on the form, and used when a quote is written.</p>
+        <p className="mt-1 text-sm text-muted">Shown at the top of your form, and used when a quote is written. Saved automatically.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field id="biz-name" label="Business name">
             <TextInput
@@ -130,20 +131,30 @@ function LinksDesk() {
 
       <section className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
         <h2 className="text-lg font-semibold tracking-tight">New link</h2>
+        <p className="mt-1 text-sm text-muted">Every lead that comes through it is tagged with this source.</p>
         <form onSubmit={create} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
             <Field id="new-source" label="Source name" error={formError}>
               <TextInput
                 id="new-source"
                 value={source}
+                maxLength={120}
                 placeholder="Facebook Ad"
                 onChange={(event) => setSource(event.target.value)}
               />
             </Field>
           </div>
-          <Button type="submit">Create link</Button>
+          <Button type="submit" disabled={creating}>
+            {creating ? "Creating…" : "Create link"}
+          </Button>
         </form>
       </section>
+
+      {copyError ? (
+        <p className="text-sm text-lost" role="alert">
+          {copyError}
+        </p>
+      ) : null}
 
       {links.length === 0 ? (
         <p className="rounded-3xl border border-line bg-paper px-4 py-8 text-center text-sm text-muted">
@@ -152,7 +163,7 @@ function LinksDesk() {
       ) : (
         <ul className="flex flex-col gap-4">
           {links.map((link) => {
-            const path = `/l/${link.id}?u=${ownerId}`;
+            const path = `/l/${link.slug}`;
             const url = origin ? `${origin}${path}` : path;
             return (
               <li key={link.id} className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
@@ -160,24 +171,51 @@ function LinksDesk() {
                   <TextInput
                     id={`source-${link.id}`}
                     value={link.source}
+                    maxLength={120}
                     onChange={(event) => updateLink(link.id, event.target.value)}
                   />
                 </Field>
-                <p className="mt-3 text-sm break-all text-muted">{url}</p>
-                <p className="mt-1 text-sm text-muted">Renaming the source does not change the link.</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button size="sm" onClick={() => void copy(link.id)}>
-                    {copied === link.id ? "Copied" : "Copy link"}
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-line bg-mist p-1 pl-3">
+                  <p className="min-w-0 flex-1 truncate text-sm text-ink-soft select-all" title={url}>
+                    {url}
+                  </p>
+                  <Button size="sm" onClick={() => void copy(link)} aria-label={`Copy ${link.source || "lead"} link`}>
+                    {copied === link.id ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+                    {copied === link.id ? "Copied" : "Copy"}
                   </Button>
+                </div>
+                <p className="mt-2 text-sm text-muted">Renaming changes the tag on new leads. The link stays the same.</p>
+                <div className="mt-4 flex flex-wrap gap-2">
                   <Button size="sm" variant="secondary" asChild>
-                    <Link to="/l/$linkId" params={{ linkId: link.id }} search={{ u: ownerId }}>
+                    <Link to="/l/$linkId" params={{ linkId: link.slug }} target="_blank">
                       Open form
                     </Link>
                   </Button>
-                  <Button size="sm" variant="danger" onClick={() => removeLink(link.id)}>
-                    Remove
-                  </Button>
+                  {confirming === link.id ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => {
+                          setConfirming(null);
+                          removeLink(link.id);
+                        }}
+                      >
+                        Yes, turn off link
+                      </Button>
+                      <Button size="sm" variant="secondary" onClick={() => setConfirming(null)}>
+                        Keep it
+                      </Button>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="danger" onClick={() => setConfirming(link.id)}>
+                      Remove
+                    </Button>
+                  )}
                 </div>
+                {confirming === link.id ? (
+                  <p className="mt-2 text-sm text-muted">Anyone with this link will no longer be able to send you jobs. Existing leads stay.</p>
+                ) : null}
               </li>
             );
           })}
