@@ -1,18 +1,18 @@
 import { i as __toESM } from "../_runtime.mjs";
 import { n as supabase } from "./supabase-DVps23Si.mjs";
-import { m as quotesLeft } from "./data-CeVsywp6.mjs";
+import { m as quotesLeft } from "./data-CXsf9KMr.mjs";
 import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
 import { C as require_jsx_runtime, b as Link } from "../_libs/@tanstack/react-router+[...].mjs";
-import { d as Check, i as Sparkles, l as Copy, u as ChevronLeft } from "../_libs/lucide-react.mjs";
-import { n as Route } from "./router-BNwn92cE.mjs";
+import { f as Copy, i as Sparkles, m as Check, p as ChevronLeft } from "../_libs/lucide-react.mjs";
+import { n as Route } from "./router-CpkVKFB4.mjs";
 import { n as cn } from "./mark-BsAhVuvo.mjs";
 import { n as SelectInput, r as TextArea } from "./fields-4PDzMwcF.mjs";
 import { t as Button } from "./button-BhX55BEi.mjs";
 import { n as TSS_SERVER_FUNCTION, r as getServerFnById, t as createServerFn } from "./ssr.mjs";
-import { n as useLeakKeep, t as AppShell } from "./app-shell-B60iWQsn.mjs";
+import { n as useLeakKeep, t as AppShell } from "./app-shell-C-uOWtEG.mjs";
 import { n as StatusBadge, t as STATUSES } from "./status-badge-BmeSX9uM.mjs";
 import { n as format, t as formatDistanceToNow } from "../_libs/date-fns.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/leads._leadId-CA8s3sP2.js
+//#region node_modules/.nitro/vite/services/ssr/assets/leads._leadId-CY8WEkQW.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var createSsrRpc = (functionId) => {

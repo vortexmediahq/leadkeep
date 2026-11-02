@@ -1,11 +1,19 @@
 import { n as supabase } from "./supabase-DVps23Si.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/data-CeVsywp6.js
+//#region node_modules/.nitro/vite/services/ssr/assets/data-CXsf9KMr.js
+var STATUSES = [
+	"active",
+	"non_renewing",
+	"attention",
+	"cancelled"
+];
 function toAllowance(raw) {
 	if (!raw || typeof raw !== "object") return null;
 	const value = raw;
 	if (typeof value.used !== "number") return null;
 	return {
 		plan: value.plan === "pro" ? "pro" : "free",
+		status: STATUSES.includes(value.status) ? value.status : "active",
+		periodEnd: typeof value.periodEnd === "string" ? value.periodEnd : null,
 		used: value.used,
 		limit: typeof value.limit === "number" ? value.limit : 5
 	};

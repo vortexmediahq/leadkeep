@@ -1,0 +1,5 @@
+[functions.paystack-billing]
+verify_jwt = true
+
+[functions.paystack-webhook]
+verify_jwt = false

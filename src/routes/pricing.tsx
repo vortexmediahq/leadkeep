@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, ChevronLeft, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, Check, ChevronLeft, ExternalLink, Loader2, PartyPopper, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { FREE_QUOTE_LIMIT, quotesLeft } from "@/lib/plan";
+import { BillingError, manageSubscription, startCheckout, verifyPayment } from "@/lib/billing";
+import { fetchAllowance } from "@/lib/data";
+import { type Allowance, FREE_QUOTE_LIMIT, quotesLeft } from "@/lib/plan";
 import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +43,19 @@ const PLANS = [
   },
 ] as const;
 
+type Busy = "checkout" | "manage" | "verify" | null;
+
+function messageOf(error: unknown) {
+  return error instanceof BillingError ? error.message : new BillingError("unknown").message;
+}
+
+function formatDate(iso: string | null) {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" });
+}
+
 function PricingPage() {
   return (
     <AppShell>
@@ -51,8 +66,42 @@ function PricingPage() {
 
 function Pricing() {
   const allowance = useLeakKeep((state) => state.allowance);
+  const setAllowance = useLeakKeep((state) => state.setAllowance);
   const current = allowance?.plan ?? "free";
-  const [notice, setNotice] = useState(false);
+  const [busy, setBusy] = useState<Busy>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [welcome, setWelcome] = useState(false);
+  const verified = useRef(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get("reference") ?? params.get("trxref");
+    if (!reference || verified.current) return;
+    verified.current = true;
+    window.history.replaceState(null, "", window.location.pathname);
+
+    setBusy("verify");
+    verifyPayment(reference)
+      .then(async () => {
+        const fresh = await fetchAllowance().catch(() => null);
+        if (fresh) setAllowance(fresh);
+        setWelcome(true);
+      })
+      .catch((reason) => setError(messageOf(reason)))
+      .finally(() => setBusy(null));
+  }, [setAllowance]);
+
+  const redirectTo = async (kind: "checkout" | "manage") => {
+    setError(null);
+    setBusy(kind);
+    try {
+      const url = kind === "checkout" ? await startCheckout() : await manageSubscription();
+      window.location.assign(url);
+    } catch (reason) {
+      setError(messageOf(reason));
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
@@ -73,6 +122,36 @@ function Pricing() {
           </p>
         ) : null}
       </header>
+
+      {busy === "verify" ? (
+        <p role="status" className="flex items-center gap-2 rounded-2xl border border-line bg-paper px-4 py-3 text-sm text-ink-soft">
+          <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />
+          Confirming your payment...
+        </p>
+      ) : null}
+
+      {welcome ? (
+        <div role="status" className="flex items-start gap-3 rounded-3xl border border-primary bg-primary-soft p-5">
+          <PartyPopper className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+          <div>
+            <p className="font-semibold text-ink">Welcome to Pro</p>
+            <p className="mt-1 text-sm text-ink-soft">
+              Your AI quotes are now unlimited. Thanks for backing LeakKeep.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {error ? (
+        <p role="alert" className="flex items-start gap-2 rounded-2xl bg-lost-soft px-4 py-3 text-sm text-lost">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          {error}
+        </p>
+      ) : null}
+
+      {allowance && allowance.plan === "pro" ? (
+        <Subscription allowance={allowance} busy={busy === "manage"} onManage={() => redirectTo("manage")} />
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         {PLANS.map((plan) => {
@@ -118,23 +197,52 @@ function Pricing() {
                     You're on {plan.name}
                   </Button>
                 ) : featured ? (
-                  <Button className="w-full" onClick={() => setNotice(true)}>
-                    <Sparkles className="size-4" aria-hidden="true" />
-                    Upgrade to Pro
-                  </Button>
+                  <>
+                    <Button className="w-full" disabled={busy !== null} onClick={() => redirectTo("checkout")}>
+                      {busy === "checkout" ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Sparkles className="size-4" aria-hidden="true" />
+                      )}
+                      {busy === "checkout" ? "Opening secure checkout..." : "Upgrade to Pro"}
+                    </Button>
+                    <p className="mt-2 text-center text-xs text-muted">Secure card payment in rand via Paystack.</p>
+                  </>
                 ) : null}
               </div>
             </section>
           );
         })}
       </div>
-
-      {notice ? (
-        <p role="status" className="rounded-2xl border border-line bg-paper px-4 py-3 text-sm text-ink-soft">
-          Online payment is coming soon. Pro isn't available to buy yet, and your free quotes reset on the 1st of
-          each month.
-        </p>
-      ) : null}
     </div>
+  );
+}
+
+function Subscription({ allowance, busy, onManage }: { allowance: Allowance; busy: boolean; onManage: () => void }) {
+  const date = formatDate(allowance.periodEnd);
+  const note =
+    allowance.status === "attention"
+      ? { tone: "warn", text: "Your last payment didn't go through. Update your card to keep Pro." }
+      : allowance.status === "non_renewing" || allowance.status === "cancelled"
+        ? { tone: "info", text: date ? `Cancelled. Pro stays on until ${date}.` : "Cancelled. Pro stays on until the end of your paid month." }
+        : { tone: "info", text: date ? `Renews on ${date}.` : "Renews monthly." };
+
+  return (
+    <section aria-labelledby="your-subscription" className="rounded-3xl border border-line bg-paper p-5 shadow-panel">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 id="your-subscription" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <Sparkles className="size-4 text-primary" aria-hidden="true" />
+            Pro plan
+            <span className="text-sm font-normal text-muted">R199 / month</span>
+          </h2>
+          <p className={cn("mt-1 text-sm", note.tone === "warn" ? "text-lost" : "text-ink-soft")}>{note.text}</p>
+        </div>
+        <Button variant="secondary" onClick={onManage} disabled={busy} className="shrink-0">
+          {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ExternalLink className="size-4" aria-hidden="true" />}
+          {allowance.status === "attention" ? "Update card" : "Manage or cancel"}
+        </Button>
+      </div>
+    </section>
   );
 }
