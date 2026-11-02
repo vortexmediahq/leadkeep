@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import {
   deleteLinkRow,
+  fetchAllowance,
   deleteServiceRow,
   fetchLeadById,
   fetchLeads,
@@ -18,6 +19,7 @@ import {
   updateServiceRow,
   type StoredTemplate,
 } from "@/lib/data";
+import type { Allowance } from "@/lib/plan";
 import { blankBusiness, seedTemplate, starterLinkSources, starterServices } from "@/lib/seed";
 import type { Business, Lead, LeadLink, LeadStatus, QuoteTemplate, Service } from "@/lib/types";
 
@@ -31,6 +33,7 @@ type LeakState = {
   template: StoredTemplate;
   leads: Lead[];
   incoming: Lead | null;
+  allowance: Allowance | null;
   loadedFor: string | null;
   loadError: string;
   saveError: string;
@@ -40,6 +43,7 @@ type LeakState = {
   reset: () => void;
   clearSaveError: () => void;
   dismissIncoming: () => void;
+  setAllowance: (allowance: Allowance) => void;
   updateBusiness: (patch: Partial<Business>) => void;
   updateTemplate: (patch: Partial<QuoteTemplate>) => void;
   addService: () => void;
@@ -124,17 +128,19 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
     template: blank,
     leads: [],
     incoming: null,
+    allowance: null,
     loadedFor: null,
     loadError: "",
     saveError: "",
     load: async (userId) => {
       try {
-        let [services, template, leads, profile, links] = await Promise.all([
+        let [services, template, leads, profile, links, allowance] = await Promise.all([
           fetchServices(),
           fetchTemplate(),
           fetchLeads(),
           fetchProfile(),
           fetchLinks(),
+          fetchAllowance().catch(() => null),
         ]);
         if (!template && services.length === 0) {
           services = starterServices.map((item) => ({ ...item, id: crypto.randomUUID() }));
@@ -155,6 +161,7 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
           links,
           business: profile,
           template: template ?? blank,
+          allowance,
           loadedFor: userId,
           loadError: "",
         });
@@ -202,6 +209,7 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
         links: [],
         leads: [],
         incoming: null,
+        allowance: null,
         template: blank,
         loadedFor: null,
         loadError: "",
@@ -210,6 +218,7 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
     },
     clearSaveError: () => set({ saveError: "" }),
     dismissIncoming: () => set({ incoming: null }),
+    setAllowance: (allowance) => set({ allowance }),
     updateBusiness: (patch) => {
       set((state) => ({ business: { ...state.business, ...patch } }));
       later("business", () => saveProfile(get().business));

@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { SelectInput, TextArea } from "@/components/ui/fields";
 import { generateQuote } from "@/lib/quote.functions";
+import { quotesLeft } from "@/lib/plan";
 import { useLeakKeep } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
 import { STATUSES, type LeadStatus } from "@/lib/types";
@@ -33,6 +34,8 @@ function LeadDetail({ leadId }: { leadId: string }) {
     [state.template.tone, state.template.structure, state.template.paymentTerms].some((part) => part.trim()),
   );
   const flushSaves = useLeakKeep((state) => state.flushSaves);
+  const allowance = useLeakKeep((state) => state.allowance);
+  const setAllowance = useLeakKeep((state) => state.setAllowance);
   const updateLead = useLeakKeep((state) => state.updateLead);
   const setStatus = useLeakKeep((state) => state.setStatus);
   const [text, setText] = useState(lead?.quote ?? "");
@@ -61,6 +64,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
   }
 
   const current = lead;
+  const outOfQuotes = allowance?.plan === "free" && quotesLeft(allowance) === 0;
 
   const saveText = (value: string) => {
     setText(value);
@@ -80,7 +84,9 @@ function LeadDetail({ leadId }: { leadId: string }) {
         return;
       }
       const result = await generateQuote({ data: { leadId: current.id, accessToken } });
+      if (result.allowance) setAllowance(result.allowance);
       if (!result.ok) {
+        if (result.limitReached) return;
         setError(result.error);
         return;
       }
@@ -232,7 +238,20 @@ function LeadDetail({ leadId }: { leadId: string }) {
               {error}
             </p>
           ) : null}
-          {confirmReplace ? (
+          {outOfQuotes ? (
+            <div className="mt-4 rounded-xl border border-primary/30 bg-primary-soft p-3">
+              <p className="text-sm font-medium text-ink">You've used all {allowance?.limit} free AI quotes this month</p>
+              <p className="mt-1 text-sm text-ink-soft">
+                You can still write and edit this quote yourself. Upgrade for unlimited AI quotes.
+              </p>
+              <Button asChild size="sm" className="mt-3">
+                <Link to="/pricing">
+                  <Sparkles className="size-4" aria-hidden="true" />
+                  See plans
+                </Link>
+              </Button>
+            </div>
+          ) : confirmReplace ? (
             <div className="mt-4 rounded-xl border border-line bg-mist p-3">
               <p className="text-sm text-ink">Replace the current quote and your edits with a fresh one?</p>
               <div className="mt-3 flex gap-2">
@@ -254,6 +273,14 @@ function LeadDetail({ leadId }: { leadId: string }) {
               {pending ? "Writing quote…" : text.trim() ? "Regenerate quote" : "Generate quote"}
             </Button>
           )}
+          {allowance?.plan === "free" && !outOfQuotes ? (
+            <p className="mt-2 text-center text-xs text-muted">
+              {quotesLeft(allowance)} of {allowance.limit} free AI quotes left this month ·{" "}
+              <Link to="/pricing" className="font-medium text-primary">
+                Upgrade
+              </Link>
+            </p>
+          ) : null}
           <label htmlFor="quote-text" className="mt-4 block text-sm font-medium">
             Quote text
             <span className="font-normal text-muted"> · edit anything before you send</span>

@@ -1,3 +1,4 @@
+import { toAllowance, type Allowance } from "@/lib/plan";
 import { supabase } from "@/lib/supabase";
 import type { Business, Lead, LeadInput, LeadLink, LeadStatus, QuoteTemplate, Service } from "@/lib/types";
 
@@ -268,4 +269,10 @@ export async function updateLeadRow(id: string, patch: { status?: LeadStatus; qu
   if (patch.quoteUpdatedAt !== undefined) columns.quote_updated_at = patch.quoteUpdatedAt;
   const { error } = await supabase.from("leads").update(columns).eq("id", id);
   if (error) fail("save the lead", error);
+}
+
+export async function fetchAllowance(): Promise<Allowance | null> {
+  const { data, error } = await supabase.rpc("quote_allowance");
+  if (error) fail("load your plan", error);
+  return toAllowance(data);
 }

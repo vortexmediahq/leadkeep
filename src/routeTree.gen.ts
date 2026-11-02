@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LinksRouteImport } from './routes/links'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as QuoteStyleRouteImport } from './routes/quote-style'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -31,6 +32,11 @@ const LinksRoute = LinksRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuoteStyleRoute = QuoteStyleRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/quote-style': typeof QuoteStyleRoute
   '/services': typeof ServicesRoute
   '/signup': typeof SignupRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/quote-style': typeof QuoteStyleRoute
   '/services': typeof ServicesRoute
   '/signup': typeof SignupRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/quote-style': typeof QuoteStyleRoute
   '/services': typeof ServicesRoute
   '/signup': typeof SignupRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/links'
     | '/login'
+    | '/pricing'
     | '/quote-style'
     | '/services'
     | '/signup'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/links'
     | '/login'
+    | '/pricing'
     | '/quote-style'
     | '/services'
     | '/signup'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/links'
     | '/login'
+    | '/pricing'
     | '/quote-style'
     | '/services'
     | '/signup'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LinksRoute: typeof LinksRoute
   LoginRoute: typeof LoginRoute
+  PricingRoute: typeof PricingRoute
   QuoteStyleRoute: typeof QuoteStyleRoute
   ServicesRoute: typeof ServicesRoute
   SignupRoute: typeof SignupRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/quote-style': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LinksRoute: LinksRoute,
   LoginRoute: LoginRoute,
+  PricingRoute: PricingRoute,
   QuoteStyleRoute: QuoteStyleRoute,
   ServicesRoute: ServicesRoute,
   SignupRoute: SignupRoute,

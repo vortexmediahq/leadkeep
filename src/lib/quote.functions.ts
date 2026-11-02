@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { format } from "date-fns";
 import { LEAD_COLUMNS, toLead, toTemplate, type LeadRow, type TemplateRow } from "@/lib/data";
 import { seedTemplate } from "@/lib/seed";
+import { toAllowance, type Allowance } from "@/lib/plan";
 import { createUserClient } from "@/lib/supabase";
 
 type QuoteInput = {
@@ -24,7 +25,9 @@ type QuoteInput = {
   };
 };
 
-export type QuoteResult = { ok: true; text: string } | { ok: false; error: string };
+export type QuoteResult =
+  | { ok: true; text: string; allowance?: Allowance }
+  | { ok: false; error: string; allowance?: Allowance; limitReached?: boolean };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -41,7 +44,8 @@ function asRequest(input: unknown) {
   return { leadId, accessToken };
 }
 
-type Loaded = { ok: true; data: QuoteInput } | { ok: false; error: string };
+type UserClient = ReturnType<typeof createUserClient>;
+type Loaded = { ok: true; data: QuoteInput; db: UserClient } | { ok: false; error: string };
 
 async function loadOwnerData(leadId: string, accessToken: string): Promise<Loaded> {
   const db = createUserClient(accessToken);
@@ -71,6 +75,7 @@ async function loadOwnerData(leadId: string, accessToken: string): Promise<Loade
 
   return {
     ok: true,
+    db,
     data: {
       business: {
         name: clip(business.name, 80),
@@ -231,6 +236,20 @@ async function requestQuote(apiKey: string, prompt: string) {
   return { ok: true as const, text };
 }
 
+async function writeQuote(apiKey: string, prompt: string): Promise<QuoteResult> {
+  try {
+    const first = await requestQuote(apiKey, prompt);
+    if (first.ok || !first.error.startsWith("Too many")) return first;
+    return await requestQuote(apiKey, prompt);
+  } catch {
+    try {
+      return await requestQuote(apiKey, prompt);
+    } catch {
+      return { ok: false, error: "The quote didn't come back. Try again." };
+    }
+  }
+}
+
 export const generateQuote = createServerFn({ method: "POST" })
   .validator((input: unknown) => asRequest(input))
   .handler(async ({ data: request }): Promise<QuoteResult> => {
@@ -253,19 +272,35 @@ export const generateQuote = createServerFn({ method: "POST" })
       return { ok: false, error: "This lead needs a name and a job description first." };
     }
 
-    const prompt = buildPrompt(data);
-    try {
-      const first = await requestQuote(apiKey, prompt);
-      if (first.ok) return first;
-      if (first.error.startsWith("Too many")) {
-        return requestQuote(apiKey, prompt);
-      }
-      return first;
-    } catch {
-      try {
-        return await requestQuote(apiKey, prompt);
-      } catch {
-        return { ok: false, error: "The quote didn't come back. Try again." };
-      }
+    const db = loaded.db;
+    const { data: claimRaw, error: claimError } = await db.rpc("claim_quote_credit", { p_lead_id: request.leadId });
+    if (claimError || !claimRaw || typeof claimRaw !== "object") {
+      return { ok: false, error: "Couldn't check your quote allowance. Try again." };
     }
+    const claim = claimRaw as { allowed?: boolean; claim?: string; reason?: string };
+    const allowance = toAllowance(claimRaw) ?? undefined;
+    if (!claim.allowed || !claim.claim) {
+      if (claim.reason === "limit") {
+        return {
+          ok: false,
+          limitReached: true,
+          allowance,
+          error: "You've used all your free AI quotes this month.",
+        };
+      }
+      return { ok: false, error: "We couldn't find this lead." };
+    }
+    const claimId = claim.claim;
+
+    const result = await writeQuote(apiKey, buildPrompt(data));
+    if (!result.ok) {
+      await db.rpc("release_quote_credit", { p_claim: claimId });
+      const after = await db.rpc("quote_allowance");
+      return { ...result, allowance: toAllowance(after.data) ?? undefined };
+    }
+    const { data: confirmed, error: confirmError } = await db.rpc("confirm_quote_credit", { p_claim: claimId });
+    if (confirmError || confirmed !== true) {
+      return { ok: false, error: "Couldn't record this quote. Try again." };
+    }
+    return { ok: true, text: result.text, allowance };
   });

@@ -3,6 +3,7 @@ import { Inbox, Link2, LogOut, ScrollText, Wrench, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { ClientGate } from "@/components/client-gate";
 import { Mark } from "@/components/mark";
+import { PlanCard, PlanPill } from "@/components/plan-card";
 import { signOut, useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -160,6 +161,9 @@ function Shell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="mt-auto border-t border-line px-3 py-4">
+          <div className="mb-4">
+            <PlanCard />
+          </div>
           <div className="px-1">
             <p className="truncate text-sm font-medium">{business.name || "Your business"}</p>
             <p className="truncate text-sm text-muted" title={email}>
@@ -180,6 +184,7 @@ function Shell({ children }: { children: ReactNode }) {
               <p className="text-sm font-semibold tracking-tight">LeakKeep</p>
               <p className="truncate text-sm text-muted">{business.name || email}</p>
             </div>
+            <PlanPill />
             <LogoutButton compact />
           </div>
         </header>
