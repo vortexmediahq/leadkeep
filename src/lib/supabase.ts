@@ -17,3 +17,10 @@ if (!url || !anonKey) {
 }
 
 export const supabase = createClient(url, anonKey);
+
+export function createUserClient(accessToken: string) {
+  return createClient(url!, anonKey!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}

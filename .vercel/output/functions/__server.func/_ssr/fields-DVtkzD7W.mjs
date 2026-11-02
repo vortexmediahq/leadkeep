@@ -1,30 +1,8 @@
 import { C as require_jsx_runtime } from "../_libs/@tanstack/react-router+[...].mjs";
-import { t as createClient } from "../_libs/supabase__supabase-js.mjs";
 import { n as clsx } from "../_libs/class-variance-authority+clsx.mjs";
 import { t as twMerge } from "../_libs/tailwind-merge.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/fields-BR2T0IA2.js
+//#region node_modules/.nitro/vite/services/ssr/assets/fields-DVtkzD7W.js
 var import_jsx_runtime = require_jsx_runtime();
-var env = {
-	"BASE_URL": "/",
-	"DEV": false,
-	"MODE": "production",
-	"PROD": true,
-	"SSR": true,
-	"TSS_DEV_SERVER": "false",
-	"TSS_DEV_SSR_STYLES_BASEPATH": "/",
-	"TSS_DEV_SSR_STYLES_ENABLED": "true",
-	"TSS_DISABLE_CSRF_MIDDLEWARE_WARNING": "false",
-	"TSS_INLINE_CSS_ENABLED": "false",
-	"TSS_ROUTER_BASEPATH": "",
-	"TSS_SERVER_FN_BASE": "/_serverFn/",
-	"VITE_AUTH_ENABLED": "false",
-	"VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxaWZoaWpnZGh4cXpkbHV3cGRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MzkzOTYsImV4cCI6MjEwODIxNTM5Nn0.tKJkTC7OsW0E7lTwNikQnlw9QdSiBdkZkNrWxAH4Iy8",
-	"VITE_SUPABASE_URL": "https://dqifhijgdhxqzdluwpdd.supabase.co"
-};
-var url = env.VITE_SUPABASE_URL;
-var anonKey = env.VITE_SUPABASE_ANON_KEY;
-if (!url || !anonKey) throw new Error("Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.");
-var supabase = createClient(url, anonKey);
 function cn(...inputs) {
 	return twMerge(clsx(inputs));
 }
@@ -90,4 +68,4 @@ function SelectInput({ className, children, ...props }) {
 	});
 }
 //#endregion
-export { TextInput as a, oneLine as c, TextArea as i, supabase as l, Mark as n, cn as o, SelectInput as r, firstName as s, Field as t };
+export { TextInput as a, oneLine as c, TextArea as i, Mark as n, cn as o, SelectInput as r, firstName as s, Field as t };

@@ -1,67 +1,15 @@
 import { i as __toESM } from "../_runtime.mjs";
+import { a as fetchLeads, b as updateLinkSource, d as insertLinks, f as insertServices, g as subscribeToNewLeads, i as fetchLeadById, l as fetchServices, m as saveTemplate, n as deleteLinkRow, o as fetchLinks, p as saveProfile, r as deleteServiceRow, s as fetchProfile, u as fetchTemplate, x as updateServiceRow, y as updateLeadRow } from "./data-DGPOvqiv.mjs";
 import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
 import { C as require_jsx_runtime, b as Link, p as useRouterState, x as useNavigate } from "../_libs/@tanstack/react-router+[...].mjs";
-import { a as LogOut, i as ScrollText, n as Wrench, o as Link2, s as Inbox, t as X } from "../_libs/lucide-react.mjs";
-import { n as Mark, o as cn } from "./fields-BR2T0IA2.mjs";
-import { _ as updateLinkSource, a as fetchLinks, c as fetchServices, d as insertServices, f as saveProfile, g as updateLeadRow, h as subscribeToNewLeads, i as fetchLeads, l as fetchTemplate, n as deleteServiceRow, o as fetchProfile, p as saveTemplate, r as fetchLeadById, t as deleteLinkRow, u as insertLinks, v as updateServiceRow } from "./data-HBOXB17-.mjs";
+import { a as ScrollText, c as Inbox, n as Wrench, o as LogOut, s as Link2, t as X } from "../_libs/lucide-react.mjs";
+import { n as Mark, o as cn } from "./fields-DVtkzD7W.mjs";
+import { i as starterServices, n as seedTemplate, r as starterLinkSources, t as blankBusiness } from "./seed-Cl0Dr4ti.mjs";
 import { t as create } from "../_libs/zustand.mjs";
-import { a as useSession, i as startSessionListener, n as signOut } from "./session-DlZbxE69.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/app-shell-BMWoByJF.js
+import { a as useSession, i as startSessionListener, n as signOut } from "./session-bk7oaULO.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/app-shell-BBMKJtBV.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var blankBusiness = {
-	name: "",
-	trade: "",
-	city: "",
-	phone: "",
-	email: "",
-	currency: "R"
-};
-var starterServices = [
-	{
-		name: "Emergency leak repair",
-		description: "Isolate and stop an active leak, then repair the fitting or the pipe section.",
-		price: "R850–R2,400",
-		notes: "After-hours call-out from R450."
-	},
-	{
-		name: "Blocked drain",
-		description: "Clear a kitchen, bathroom, or main line blockage.",
-		price: "R650–R1,800",
-		notes: "Camera inspection is quoted separately."
-	},
-	{
-		name: "Geyser replacement",
-		description: "Supply and fit a standard 150L electric geyser, including drip tray and vacuum breaker.",
-		price: "R6,800–R11,500",
-		notes: "Removal of the old unit is included."
-	},
-	{
-		name: "Tap and toilet repair",
-		description: "Fix leaking mixers, cisterns, and running toilets.",
-		price: "R450–R1,350",
-		notes: "Non-standard parts are extra and confirmed before fitting."
-	},
-	{
-		name: "Leak detection",
-		description: "Find a hidden leak with moisture and acoustic tracing.",
-		price: "R950–R2,200",
-		notes: "The repair is quoted once the source is found."
-	}
-];
-var starterLinkSources = [
-	"Facebook Ad",
-	"Google Business",
-	"Website",
-	"Instagram"
-];
-var seedTemplate = {
-	tone: "Direct, calm, and specific. Sound like the owner, not a call centre. Use the customer's first name once. No hype and no exclamation marks.",
-	structure: "One-line summary of the job\nWhat we will do\nPrice, and what would change it\nWhat is included and what is not\nWhen we can come\nHow to accept",
-	paymentTerms: "50% to book the job, balance when the work is finished. Card, EFT, or cash. Emergency call-outs are paid on the day.",
-	warranty: "Workmanship guaranteed for 6 months. Manufacturer warranties are passed on for parts we supply. Existing pipework we did not replace is not covered.",
-	extra: "Close with the business name and one line: we will confirm an arrival window by phone."
-};
 var SAVE_DELAY_MS = 600;
 var LEGACY_KEY = "leakkeep.v1";
 var message = (error) => error instanceof Error ? error.message : "Something went wrong saving.";
@@ -82,6 +30,7 @@ function readLegacy() {
 }
 var useLeakKeep = create()((set, get) => {
 	const timers = /* @__PURE__ */ new Map();
+	const queued = /* @__PURE__ */ new Map();
 	let unsubscribe = null;
 	const run = (task) => {
 		task().then(() => set({ saveError: "" }), (error) => set({ saveError: message(error) }));
@@ -89,8 +38,10 @@ var useLeakKeep = create()((set, get) => {
 	const later = (key, task) => {
 		const pending = timers.get(key);
 		if (pending) clearTimeout(pending);
+		queued.set(key, task);
 		timers.set(key, setTimeout(() => {
 			timers.delete(key);
+			queued.delete(key);
 			run(task);
 		}, SAVE_DELAY_MS));
 	};
@@ -98,6 +49,7 @@ var useLeakKeep = create()((set, get) => {
 		const pending = timers.get(key);
 		if (pending) clearTimeout(pending);
 		timers.delete(key);
+		queued.delete(key);
 	};
 	const mergeNew = (incoming) => {
 		const known = new Set(get().leads.map((lead) => lead.id));
@@ -174,9 +126,23 @@ var useLeakKeep = create()((set, get) => {
 				mergeNew(await fetchLeads());
 			} catch {}
 		},
+		flushSaves: async () => {
+			const tasks = [...queued.values()];
+			timers.forEach((timer) => clearTimeout(timer));
+			timers.clear();
+			queued.clear();
+			try {
+				await Promise.all(tasks.map((task) => task()));
+				set({ saveError: "" });
+			} catch (error) {
+				set({ saveError: message(error) });
+				throw error;
+			}
+		},
 		reset: () => {
 			timers.forEach((timer) => clearTimeout(timer));
 			timers.clear();
+			queued.clear();
 			unsubscribe?.();
 			unsubscribe = null;
 			set({

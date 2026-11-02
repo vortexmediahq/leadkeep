@@ -1,15 +1,16 @@
 import { i as __toESM } from "../_runtime.mjs";
+import { n as supabase } from "./supabase-DVps23Si.mjs";
 import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
 import { C as require_jsx_runtime, b as Link } from "../_libs/@tanstack/react-router+[...].mjs";
-import { l as ChevronLeft } from "../_libs/lucide-react.mjs";
-import { n as Route } from "./router-CkBMb8qU.mjs";
-import { i as TextArea, o as cn, r as SelectInput } from "./fields-BR2T0IA2.mjs";
-import { t as Button } from "./button-DgkzzLiY.mjs";
+import { d as Check, i as Sparkles, l as Copy, u as ChevronLeft } from "../_libs/lucide-react.mjs";
+import { n as Route } from "./router-AI0jkNKI.mjs";
+import { i as TextArea, o as cn, r as SelectInput } from "./fields-DVtkzD7W.mjs";
+import { t as Button } from "./button-C8ZtgPRe.mjs";
 import { n as TSS_SERVER_FUNCTION, r as getServerFnById, t as createServerFn } from "./ssr.mjs";
-import { n as useLeakKeep, t as AppShell } from "./app-shell-BMWoByJF.mjs";
-import { n as StatusBadge, t as STATUSES } from "./status-badge-Zm84nP20.mjs";
+import { n as useLeakKeep, t as AppShell } from "./app-shell-BBMKJtBV.mjs";
+import { n as StatusBadge, t as STATUSES } from "./status-badge-CVB4AvWn.mjs";
 import { n as format, t as formatDistanceToNow } from "../_libs/date-fns.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/leads._leadId-fJkgAy32.js
+//#region node_modules/.nitro/vite/services/ssr/assets/leads._leadId-DmG4w9XH.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var createSsrRpc = (functionId) => {
@@ -24,75 +25,40 @@ var createSsrRpc = (functionId) => {
 		[TSS_SERVER_FUNCTION]: true
 	});
 };
-function clip(value, max) {
-	const text = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
-	if (text.length <= max) return text;
-	return `${text.slice(0, max - 1).trimEnd()}…`;
-}
-function asInput(input) {
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function asRequest(input) {
 	const raw = input ?? {};
-	const business = raw.business ?? {};
-	const template = raw.template ?? {};
-	const lead = raw.lead ?? {};
-	const services = Array.isArray(raw.services) ? raw.services.slice(0, 30) : [];
 	return {
-		business: {
-			name: clip(business.name, 80),
-			trade: clip(business.trade, 140),
-			city: clip(business.city, 80),
-			phone: clip(business.phone, 40),
-			email: clip(business.email, 80),
-			currency: clip(business.currency, 8) || "R"
-		},
-		services: services.map((service) => ({
-			name: clip(service?.name, 80),
-			description: clip(service?.description, 280),
-			price: clip(service?.price, 80),
-			notes: clip(service?.notes, 200)
-		})),
-		template: {
-			tone: clip(template.tone, 700),
-			structure: clip(template.structure, 900),
-			paymentTerms: clip(template.paymentTerms, 700),
-			warranty: clip(template.warranty, 700),
-			extra: clip(template.extra, 700)
-		},
-		lead: {
-			name: clip(lead.name, 80),
-			phone: clip(lead.phone, 40),
-			email: clip(lead.email, 80),
-			address: clip(lead.address, 160),
-			jobType: clip(lead.jobType, 80),
-			description: clip(lead.description, 1200),
-			urgency: clip(lead.urgency, 40),
-			preferredTime: clip(lead.preferredTime, 40),
-			propertyType: clip(lead.propertyType, 40),
-			budget: clip(lead.budget, 120),
-			accessNotes: clip(lead.accessNotes, 300),
-			source: clip(lead.source, 80)
-		}
+		leadId: typeof raw.leadId === "string" && UUID.test(raw.leadId) ? raw.leadId : "",
+		accessToken: typeof raw.accessToken === "string" ? raw.accessToken.slice(0, 4096) : ""
 	};
 }
-var generateQuote = createServerFn({ method: "POST" }).validator((input) => asInput(input)).handler(createSsrRpc("c211341b0a0f31208e5c139f62be53a08fa757f216e39ba50286f495ee055735"));
+var generateQuote = createServerFn({ method: "POST" }).validator((input) => asRequest(input)).handler(createSsrRpc("c211341b0a0f31208e5c139f62be53a08fa757f216e39ba50286f495ee055735"));
 function LeadPage() {
 	const { leadId } = Route.useParams();
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AppShell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LeadDetail, { leadId }) });
 }
 function LeadDetail({ leadId }) {
 	const lead = useLeakKeep((state) => state.leads.find((item) => item.id === leadId));
-	const business = useLeakKeep((state) => state.business);
-	const services = useLeakKeep((state) => state.services);
-	const template = useLeakKeep((state) => state.template);
+	const hasServices = useLeakKeep((state) => state.services.some((service) => service.name.trim()));
+	const hasStyle = useLeakKeep((state) => [
+		state.template.tone,
+		state.template.structure,
+		state.template.paymentTerms
+	].some((part) => part.trim()));
+	const flushSaves = useLeakKeep((state) => state.flushSaves);
 	const updateLead = useLeakKeep((state) => state.updateLead);
 	const setStatus = useLeakKeep((state) => state.setStatus);
 	const [text, setText] = (0, import_react.useState)(lead?.quote ?? "");
 	const [pending, setPending] = (0, import_react.useState)(false);
 	const [error, setError] = (0, import_react.useState)("");
 	const [copied, setCopied] = (0, import_react.useState)(false);
+	const [confirmReplace, setConfirmReplace] = (0, import_react.useState)(false);
 	(0, import_react.useEffect)(() => {
 		setText(lead?.quote ?? "");
 		setError("");
 		setCopied(false);
+		setConfirmReplace(false);
 	}, [lead?.id]);
 	if (!lead) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "mx-auto max-w-3xl",
@@ -121,32 +87,20 @@ function LeadDetail({ leadId }) {
 		});
 	};
 	const onGenerate = async () => {
+		setConfirmReplace(false);
 		setPending(true);
 		setError("");
 		try {
+			await flushSaves().catch(() => void 0);
+			const { data: auth } = await supabase.auth.getSession();
+			const accessToken = auth.session?.access_token;
+			if (!accessToken) {
+				setError("Your session has expired. Log in again to write quotes.");
+				return;
+			}
 			const result = await generateQuote({ data: {
-				business,
-				services: services.map(({ name, description, price, notes }) => ({
-					name,
-					description,
-					price,
-					notes
-				})),
-				template,
-				lead: {
-					name: current.name,
-					phone: current.phone,
-					email: current.email,
-					address: current.address,
-					jobType: current.jobType,
-					description: current.description,
-					urgency: current.urgency,
-					preferredTime: current.preferredTime,
-					propertyType: current.propertyType,
-					budget: current.budget,
-					accessNotes: current.accessNotes,
-					source: current.source
-				}
+				leadId: current.id,
+				accessToken
 			} });
 			if (!result.ok) {
 				setError(result.error);
@@ -306,32 +260,92 @@ function LeadDetail({ leadId }) {
 								"."
 							]
 						}),
+						!hasServices || !hasStyle ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+							className: "mt-3 rounded-xl bg-primary-soft px-3 py-2 text-sm text-ink-soft",
+							children: [!hasServices ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+								"Add your",
+								" ",
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
+									to: "/services",
+									className: "font-medium text-primary",
+									children: "services and prices"
+								}),
+								" ",
+								"so quotes show real numbers.",
+								" "
+							] }) : null, !hasStyle ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+								"Set your",
+								" ",
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
+									to: "/quote-style",
+									className: "font-medium text-primary",
+									children: "quote style"
+								}),
+								" ",
+								"so quotes sound like you."
+							] }) : null]
+						}) : null,
 						error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							role: "alert",
 							className: "mt-3 text-sm text-lost",
 							children: error
 						}) : null,
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "mt-4 flex flex-col gap-2 sm:flex-row lg:flex-col",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-								className: "w-full",
-								onClick: () => void onGenerate(),
-								disabled: pending,
-								children: pending ? "Writing quote…" : text.trim() ? "Regenerate quote" : "Generate quote"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-								className: "w-full",
-								variant: "secondary",
-								onClick: () => void onCopy(),
-								disabled: !text.trim() || pending,
-								children: copied ? "Copied" : "Copy"
+						confirmReplace ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "mt-4 rounded-xl border border-line bg-mist p-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-sm text-ink",
+								children: "Replace the current quote and your edits with a fresh one?"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "mt-3 flex gap-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									size: "sm",
+									onClick: () => void onGenerate(),
+									children: "Replace quote"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									size: "sm",
+									variant: "secondary",
+									onClick: () => setConfirmReplace(false),
+									children: "Keep current"
+								})]
+							})]
+						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							className: "mt-4 w-full",
+							onClick: () => text.trim() ? setConfirmReplace(true) : void onGenerate(),
+							disabled: pending,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, {
+								className: "size-4",
+								"aria-hidden": "true"
+							}), pending ? "Writing quote…" : text.trim() ? "Regenerate quote" : "Generate quote"]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+							htmlFor: "quote-text",
+							className: "mt-4 block text-sm font-medium",
+							children: ["Quote text", /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "font-normal text-muted",
+								children: " · edit anything before you send"
 							})]
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextArea, {
-							className: "mt-4 min-h-80 font-serif leading-relaxed",
+							id: "quote-text",
+							className: cn("mt-2 min-h-96 font-serif leading-relaxed", pending && "animate-pulse opacity-60"),
 							value: text,
 							onChange: (event) => saveText(event.target.value),
 							readOnly: pending,
-							"aria-label": "Quote",
-							placeholder: "Your quote will land here. You can edit every line before you send it."
+							placeholder: "Your quote will land here, built from this job, your prices and your quote style."
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							className: "mt-3 w-full",
+							variant: text.trim() && !pending ? "primary" : "secondary",
+							onClick: () => void onCopy(),
+							disabled: !text.trim() || pending,
+							"aria-live": "polite",
+							children: [copied ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Check, {
+								className: "size-4",
+								"aria-hidden": "true"
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Copy, {
+								className: "size-4",
+								"aria-hidden": "true"
+							}), copied ? "Copied to clipboard" : "Copy Quote"]
 						}),
 						lead.quoteUpdatedAt ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 							className: "mt-2 text-sm text-muted",

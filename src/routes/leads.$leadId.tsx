@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { format, formatDistanceToNow } from "date-fns";
-import { ChevronLeft } from "lucide-react";
+import { Check, ChevronLeft, Copy, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { SelectInput, TextArea } from "@/components/ui/fields";
 import { generateQuote } from "@/lib/quote.functions";
 import { useLeakKeep } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import { STATUSES, type LeadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -27,20 +28,24 @@ function LeadPage() {
 
 function LeadDetail({ leadId }: { leadId: string }) {
   const lead = useLeakKeep((state) => state.leads.find((item) => item.id === leadId));
-  const business = useLeakKeep((state) => state.business);
-  const services = useLeakKeep((state) => state.services);
-  const template = useLeakKeep((state) => state.template);
+  const hasServices = useLeakKeep((state) => state.services.some((service) => service.name.trim()));
+  const hasStyle = useLeakKeep((state) =>
+    [state.template.tone, state.template.structure, state.template.paymentTerms].some((part) => part.trim()),
+  );
+  const flushSaves = useLeakKeep((state) => state.flushSaves);
   const updateLead = useLeakKeep((state) => state.updateLead);
   const setStatus = useLeakKeep((state) => state.setStatus);
   const [text, setText] = useState(lead?.quote ?? "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [confirmReplace, setConfirmReplace] = useState(false);
 
   useEffect(() => {
     setText(lead?.quote ?? "");
     setError("");
     setCopied(false);
+    setConfirmReplace(false);
   }, [lead?.id]);
 
   if (!lead) {
@@ -63,35 +68,18 @@ function LeadDetail({ leadId }: { leadId: string }) {
   };
 
   const onGenerate = async () => {
+    setConfirmReplace(false);
     setPending(true);
     setError("");
     try {
-      const result = await generateQuote({
-        data: {
-          business,
-          services: services.map(({ name, description, price, notes }) => ({
-            name,
-            description,
-            price,
-            notes,
-          })),
-          template,
-          lead: {
-            name: current.name,
-            phone: current.phone,
-            email: current.email,
-            address: current.address,
-            jobType: current.jobType,
-            description: current.description,
-            urgency: current.urgency,
-            preferredTime: current.preferredTime,
-            propertyType: current.propertyType,
-            budget: current.budget,
-            accessNotes: current.accessNotes,
-            source: current.source,
-          },
-        },
-      });
+      await flushSaves().catch(() => undefined);
+      const { data: auth } = await supabase.auth.getSession();
+      const accessToken = auth.session?.access_token;
+      if (!accessToken) {
+        setError("Your session has expired. Log in again to write quotes.");
+        return;
+      }
+      const result = await generateQuote({ data: { leadId: current.id, accessToken } });
       if (!result.ok) {
         setError(result.error);
         return;
@@ -115,7 +103,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
     } catch {
       setError("Couldn't copy. Select the quote and copy it manually.");
     }
-  }
+  };
 
   const rows = [
     ["Phone", lead.phone],
@@ -217,23 +205,77 @@ function LeadDetail({ leadId }: { leadId: string }) {
             </Link>
             .
           </p>
-          {error ? <p className="mt-3 text-sm text-lost">{error}</p> : null}
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row lg:flex-col">
-            <Button className="w-full" onClick={() => void onGenerate()} disabled={pending}>
+          {!hasServices || !hasStyle ? (
+            <p className="mt-3 rounded-xl bg-primary-soft px-3 py-2 text-sm text-ink-soft">
+              {!hasServices ? (
+                <>
+                  Add your{" "}
+                  <Link to="/services" className="font-medium text-primary">
+                    services and prices
+                  </Link>{" "}
+                  so quotes show real numbers.{" "}
+                </>
+              ) : null}
+              {!hasStyle ? (
+                <>
+                  Set your{" "}
+                  <Link to="/quote-style" className="font-medium text-primary">
+                    quote style
+                  </Link>{" "}
+                  so quotes sound like you.
+                </>
+              ) : null}
+            </p>
+          ) : null}
+          {error ? (
+            <p role="alert" className="mt-3 text-sm text-lost">
+              {error}
+            </p>
+          ) : null}
+          {confirmReplace ? (
+            <div className="mt-4 rounded-xl border border-line bg-mist p-3">
+              <p className="text-sm text-ink">Replace the current quote and your edits with a fresh one?</p>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={() => void onGenerate()}>
+                  Replace quote
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setConfirmReplace(false)}>
+                  Keep current
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              className="mt-4 w-full"
+              onClick={() => (text.trim() ? setConfirmReplace(true) : void onGenerate())}
+              disabled={pending}
+            >
+              <Sparkles className="size-4" aria-hidden="true" />
               {pending ? "Writing quote…" : text.trim() ? "Regenerate quote" : "Generate quote"}
             </Button>
-            <Button className="w-full" variant="secondary" onClick={() => void onCopy()} disabled={!text.trim() || pending}>
-              {copied ? "Copied" : "Copy"}
-            </Button>
-          </div>
+          )}
+          <label htmlFor="quote-text" className="mt-4 block text-sm font-medium">
+            Quote text
+            <span className="font-normal text-muted"> · edit anything before you send</span>
+          </label>
           <TextArea
-            className="mt-4 min-h-80 font-serif leading-relaxed"
+            id="quote-text"
+            className={cn("mt-2 min-h-96 font-serif leading-relaxed", pending && "animate-pulse opacity-60")}
             value={text}
             onChange={(event) => saveText(event.target.value)}
             readOnly={pending}
-            aria-label="Quote"
-            placeholder="Your quote will land here. You can edit every line before you send it."
+            placeholder="Your quote will land here, built from this job, your prices and your quote style."
           />
+          <Button
+            className="mt-3 w-full"
+            variant={text.trim() && !pending ? "primary" : "secondary"}
+            onClick={() => void onCopy()}
+            disabled={!text.trim() || pending}
+            aria-live="polite"
+          >
+            {copied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+            {copied ? "Copied to clipboard" : "Copy Quote"}
+          </Button>
           {lead.quoteUpdatedAt ? (
             <p className="mt-2 text-sm text-muted">
               Saved {formatDistanceToNow(new Date(lead.quoteUpdatedAt), { addSuffix: true })}

@@ -1,5 +1,5 @@
-import { l as supabase } from "./fields-BR2T0IA2.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/data-HBOXB17-.js
+import { n as supabase } from "./supabase-DVps23Si.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/data-DGPOvqiv.js
 var LEAD_COLUMNS = "id, link_id, source, customer_name, phone, email, address, answers, status, quote, quote_updated_at, created_at";
 function fail(action, error) {
 	throw new Error(`Couldn't ${action}. ${error?.message ?? ""}`.trim());
@@ -192,4 +192,4 @@ async function updateLeadRow(id, patch) {
 	if (error) fail("save the lead", error);
 }
 //#endregion
-export { updateLinkSource as _, fetchLinks as a, fetchServices as c, insertServices as d, saveProfile as f, updateLeadRow as g, subscribeToNewLeads as h, fetchLeads as i, fetchTemplate as l, submitLeadViaLink as m, deleteServiceRow as n, fetchProfile as o, saveTemplate as p, fetchLeadById as r, fetchPublicForm as s, deleteLinkRow as t, insertLinks as u, updateServiceRow as v };
+export { toLead as _, fetchLeads as a, updateLinkSource as b, fetchPublicForm as c, insertLinks as d, insertServices as f, subscribeToNewLeads as g, submitLeadViaLink as h, fetchLeadById as i, fetchServices as l, saveTemplate as m, deleteLinkRow as n, fetchLinks as o, saveProfile as p, deleteServiceRow as r, fetchProfile as s, LEAD_COLUMNS as t, fetchTemplate as u, toTemplate as v, updateServiceRow as x, updateLeadRow as y };

@@ -3,7 +3,7 @@ import type { Business, Lead, LeadInput, LeadLink, LeadStatus, QuoteTemplate, Se
 
 type ServiceRow = { id: string; name: string; description: string; price: string; notes: string };
 
-type TemplateRow = {
+export type TemplateRow = {
   id: string;
   tone: string;
   structure: string;
@@ -17,7 +17,7 @@ type LeadAnswers = Pick<
   "jobType" | "description" | "urgency" | "preferredTime" | "propertyType" | "budget" | "accessNotes"
 >;
 
-type LeadRow = {
+export type LeadRow = {
   id: string;
   link_id: string;
   source: string;
@@ -32,7 +32,7 @@ type LeadRow = {
   created_at: string;
 };
 
-const LEAD_COLUMNS =
+export const LEAD_COLUMNS =
   "id, link_id, source, customer_name, phone, email, address, answers, status, quote, quote_updated_at, created_at";
 
 export type StoredTemplate = QuoteTemplate & { id: string | null };
@@ -41,7 +41,7 @@ function fail(action: string, error: { message: string } | null): never {
   throw new Error(`Couldn't ${action}. ${error?.message ?? ""}`.trim());
 }
 
-function toLead(row: LeadRow): Lead {
+export function toLead(row: LeadRow): Lead {
   const answers = row.answers ?? {};
   return {
     id: row.id,
@@ -65,7 +65,7 @@ function toLead(row: LeadRow): Lead {
   };
 }
 
-function toTemplate(row: TemplateRow): StoredTemplate {
+export function toTemplate(row: TemplateRow): StoredTemplate {
   return {
     id: row.id,
     tone: row.tone,

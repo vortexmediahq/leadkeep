@@ -36,6 +36,7 @@ type LeakState = {
   saveError: string;
   load: (userId: string) => Promise<void>;
   refreshLeads: () => Promise<void>;
+  flushSaves: () => Promise<void>;
   reset: () => void;
   clearSaveError: () => void;
   dismissIncoming: () => void;
@@ -73,6 +74,7 @@ function readLegacy(): { business: Partial<Business>; sources: string[] } {
 
 export const useLeakKeep = create<LeakState>()((set, get) => {
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  const queued = new Map<string, () => Promise<unknown>>();
   let unsubscribe: (() => void) | null = null;
 
   const run = (task: () => Promise<unknown>) => {
@@ -85,10 +87,12 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
   const later = (key: string, task: () => Promise<unknown>) => {
     const pending = timers.get(key);
     if (pending) clearTimeout(pending);
+    queued.set(key, task);
     timers.set(
       key,
       setTimeout(() => {
         timers.delete(key);
+        queued.delete(key);
         run(task);
       }, SAVE_DELAY_MS),
     );
@@ -98,6 +102,7 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
     const pending = timers.get(key);
     if (pending) clearTimeout(pending);
     timers.delete(key);
+    queued.delete(key);
   };
 
   const mergeNew = (incoming: Lead[]) => {
@@ -172,9 +177,23 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
         // A missed refresh is retried on the next focus; the dashboard keeps what it has.
       }
     },
+    flushSaves: async () => {
+      const tasks = [...queued.values()];
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
+      queued.clear();
+      try {
+        await Promise.all(tasks.map((task) => task()));
+        set({ saveError: "" });
+      } catch (error) {
+        set({ saveError: message(error) });
+        throw error;
+      }
+    },
     reset: () => {
       timers.forEach((timer) => clearTimeout(timer));
       timers.clear();
+      queued.clear();
       unsubscribe?.();
       unsubscribe = null;
       set({

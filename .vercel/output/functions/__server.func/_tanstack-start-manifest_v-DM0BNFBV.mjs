@@ -1,4 +1,4 @@
-//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-gpIXSTVj.js
+//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-DM0BNFBV.js
 var tsrStartManifest = () => ({ routes: {
 	__root__: {
 		filePath: "/tmp/cc-agent/72271129/project/src/routes/__root.tsx",
@@ -13,7 +13,7 @@ var tsrStartManifest = () => ({ routes: {
 			"/leads/$leadId"
 		],
 		preloads: [
-			"/assets/index-Czgn_sF2.js",
+			"/assets/index-Dn-jUqHo.js",
 			"/assets/rolldown-runtime-CbXtAM7H.js",
 			"/assets/link-B3lRHQ53.js",
 			"/assets/preload-helper-BMoFxggm.js",
@@ -22,15 +22,15 @@ var tsrStartManifest = () => ({ routes: {
 		scripts: [{ attrs: {
 			type: "module",
 			async: !0,
-			src: "/assets/index-Czgn_sF2.js"
+			src: "/assets/index-Dn-jUqHo.js"
 		} }]
 	},
 	"/": {
 		filePath: "/tmp/cc-agent/72271129/project/src/routes/index.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/routes-DBXDkTwX.js",
-			"/assets/app-shell-BAK2VD3S.js",
+			"/assets/routes-BObS1PX3.js",
+			"/assets/app-shell-B6DXP1XQ.js",
 			"/assets/status-badge-CJJttTxc.js",
 			"/assets/fields-vi6irMRZ.js"
 		]
@@ -39,9 +39,10 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "/tmp/cc-agent/72271129/project/src/routes/links.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/links-BPFWZRHY.js",
-			"/assets/app-shell-BAK2VD3S.js",
+			"/assets/links-CoenEro6.js",
+			"/assets/app-shell-B6DXP1XQ.js",
 			"/assets/check-Blhaanmr.js",
+			"/assets/copy-C2UoQCrY.js",
 			"/assets/fields-vi6irMRZ.js",
 			"/assets/button-CVkIlx4R.js"
 		]
@@ -55,8 +56,8 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "/tmp/cc-agent/72271129/project/src/routes/quote-style.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/quote-style-DDhEXmS2.js",
-			"/assets/app-shell-BAK2VD3S.js",
+			"/assets/quote-style-4lclgOmW.js",
+			"/assets/app-shell-B6DXP1XQ.js",
 			"/assets/fields-vi6irMRZ.js"
 		]
 	},
@@ -64,8 +65,8 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "/tmp/cc-agent/72271129/project/src/routes/services.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/services-Cp_1BBxG.js",
-			"/assets/app-shell-BAK2VD3S.js",
+			"/assets/services-BMeRG3zb.js",
+			"/assets/app-shell-B6DXP1XQ.js",
 			"/assets/fields-vi6irMRZ.js",
 			"/assets/button-CVkIlx4R.js"
 		]
@@ -79,7 +80,7 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "/tmp/cc-agent/72271129/project/src/routes/l.$linkId.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/l._linkId-BH9PvWkE.js",
+			"/assets/l._linkId-2SlJhuJU.js",
 			"/assets/check-Blhaanmr.js",
 			"/assets/fields-vi6irMRZ.js",
 			"/assets/data-Dzoj4_B3.js",
@@ -90,8 +91,10 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "/tmp/cc-agent/72271129/project/src/routes/leads.$leadId.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/leads._leadId-CIuW0EzJ.js",
-			"/assets/app-shell-BAK2VD3S.js",
+			"/assets/leads._leadId-DQ3fUY_K.js",
+			"/assets/app-shell-B6DXP1XQ.js",
+			"/assets/check-Blhaanmr.js",
+			"/assets/copy-C2UoQCrY.js",
 			"/assets/status-badge-CJJttTxc.js",
 			"/assets/fields-vi6irMRZ.js",
 			"/assets/button-CVkIlx4R.js"

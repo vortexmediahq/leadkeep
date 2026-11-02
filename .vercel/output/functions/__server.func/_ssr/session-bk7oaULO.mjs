@@ -1,6 +1,6 @@
-import { l as supabase } from "./fields-BR2T0IA2.mjs";
+import { n as supabase } from "./supabase-DVps23Si.mjs";
 import { t as create } from "../_libs/zustand.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/session-DlZbxE69.js
+//#region node_modules/.nitro/vite/services/ssr/assets/session-bk7oaULO.js
 var useSession = create()(() => ({
 	status: "loading",
 	user: null

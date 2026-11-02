@@ -1,6 +1,6 @@
 import { C as require_jsx_runtime } from "../_libs/@tanstack/react-router+[...].mjs";
-import { o as cn } from "./fields-BR2T0IA2.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/status-badge-Zm84nP20.js
+import { o as cn } from "./fields-DVtkzD7W.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/status-badge-CVB4AvWn.js
 var import_jsx_runtime = require_jsx_runtime();
 var STATUSES = [
 	{

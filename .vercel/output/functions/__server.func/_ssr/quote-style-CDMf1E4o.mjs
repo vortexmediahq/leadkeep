@@ -1,7 +1,7 @@
 import { C as require_jsx_runtime } from "../_libs/@tanstack/react-router+[...].mjs";
-import { i as TextArea, t as Field } from "./fields-BR2T0IA2.mjs";
-import { n as useLeakKeep, t as AppShell } from "./app-shell-BMWoByJF.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/quote-style-vs0BRgE8.js
+import { i as TextArea, t as Field } from "./fields-DVtkzD7W.mjs";
+import { n as useLeakKeep, t as AppShell } from "./app-shell-BBMKJtBV.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/quote-style-CDMf1E4o.js
 var import_jsx_runtime = require_jsx_runtime();
 function QuoteStylePage() {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AppShell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(QuoteStyle, {}) });
