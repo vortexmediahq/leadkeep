@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { Mark } from "@/components/mark";
+import { Logo } from "@/components/mark";
 import { Button } from "@/components/ui/button";
 import { Field, TextInput } from "@/components/ui/fields";
 import { signIn, signUp, startSessionListener, useSession } from "@/lib/session";
@@ -8,16 +8,16 @@ import { signIn, signUp, startSessionListener, useSession } from "@/lib/session"
 const COPY = {
   login: {
     title: "Log in",
-    lead: "Open your lead desk.",
+    lead: "Open your lead inbox.",
     submit: "Log in",
     pending: "Logging in…",
-    switchText: "New to LeakKeep?",
+    switchText: "New to LeadKeep?",
     switchLabel: "Create an account",
     switchTo: "/signup",
   },
   signup: {
     title: "Create your account",
-    lead: "Your leads, services, and quote style stay private to you.",
+    lead: "Build your questionnaire, share the link, and every answer lands here. Private to you.",
     submit: "Create account",
     pending: "Creating account…",
     switchText: "Already have an account?",
@@ -66,12 +66,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-mist px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex items-center gap-3">
-          <Mark />
-          <div>
-            <p className="text-base font-semibold tracking-tight">LeakKeep</p>
-            <p className="text-sm text-muted">Lead desk</p>
-          </div>
+        <div className="mb-6 flex justify-center">
+          <Logo className="w-40" />
         </div>
         <form
           onSubmit={(event) => void submit(event)}
@@ -105,6 +101,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 onChange={(event) => setPassword(event.target.value)}
               />
             </Field>
+            {mode === "login" ? (
+              <Link to="/forgot-password" className="-mt-2 self-end text-sm font-medium text-primary hover:text-accent">
+                Forgot password?
+              </Link>
+            ) : null}
             {errors.form ? (
               <p className="text-sm text-lost" role="alert">
                 {errors.form}

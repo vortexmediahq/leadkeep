@@ -1,8 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Inbox, Link2, LogOut, ScrollText, Wrench, X } from "lucide-react";
+import { Inbox, Link2, ListChecks, LogOut, ScrollText, Wrench, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { ClientGate } from "@/components/client-gate";
-import { Mark } from "@/components/mark";
+import { Logo } from "@/components/mark";
 import { PlanCard, PlanPill } from "@/components/plan-card";
 import { signOut, useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
@@ -17,6 +17,7 @@ const NAV = [
     icon: ScrollText,
     match: (path: string) => path.startsWith("/quote-style"),
   },
+  { to: "/questions", label: "Questions", icon: ListChecks, match: (path: string) => path.startsWith("/questions") },
   { to: "/links", label: "Links", icon: Link2, match: (path: string) => path.startsWith("/links") },
 ] as const;
 
@@ -24,8 +25,8 @@ function ShellSkeleton() {
   return (
     <div className="min-h-screen bg-mist">
       <header className="border-b border-line bg-paper px-4 py-4">
-        <p className="text-base font-semibold tracking-tight">LeakKeep</p>
-        <p className="text-sm text-muted">Loading your lead desk</p>
+        <Logo className="w-36" />
+        <p className="mt-1 text-sm text-muted">Loading your lead inbox</p>
       </header>
     </div>
   );
@@ -143,12 +144,9 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-mist md:flex">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-paper md:flex">
-        <div className="flex items-center gap-3 px-4 py-5">
-          <Mark />
-          <div>
-            <p className="text-base font-semibold tracking-tight">LeakKeep</p>
-            <p className="text-sm text-muted">Lead desk</p>
-          </div>
+        <div className="px-4 py-5">
+          <Logo className="w-36" />
+          <p className="mt-1 text-sm text-muted">Lead inbox</p>
         </div>
         <nav className="flex flex-col gap-1 px-3" aria-label="Desk">
           {NAV.map((item) => (
@@ -179,9 +177,8 @@ function Shell({ children }: { children: ReactNode }) {
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-10 border-b border-line bg-paper px-4 py-3 md:hidden">
           <div className="flex items-center gap-3">
-            <Mark className="size-8" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold tracking-tight">LeakKeep</p>
+              <Logo className="h-7 w-auto" />
               <p className="truncate text-sm text-muted">{business.name || email}</p>
             </div>
             <PlanPill />
