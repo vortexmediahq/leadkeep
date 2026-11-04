@@ -49,3 +49,17 @@ export async function signUp(email: string, password: string) {
 export async function signOut() {
   await supabase.auth.signOut();
 }
+
+/** Emails a reset link. Always resolves the same way so it can't be used to check which emails have accounts. */
+export async function requestPasswordReset(email: string) {
+  const redirectTo = `${window.location.origin}/reset-password`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error && (error.message.toLowerCase().includes("fetch") || error.message.toLowerCase().includes("network"))) {
+    throw new Error("Couldn't reach the server. Check your connection.");
+  }
+}
+
+export async function updatePassword(password: string) {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw new Error(friendlyAuthError(error.message));
+}

@@ -131,7 +131,7 @@ function buildPrompt(data: QuoteInput) {
   return [
     `Today's date: ${format(new Date(), "d MMMM yyyy")}`,
     `Business: ${data.business.name || "(name not set)"}`,
-    `Trade: ${data.business.trade}`,
+    `Type of business: ${data.business.trade}`,
     `City: ${data.business.city}`,
     `Phone: ${data.business.phone}`,
     `Email: ${data.business.email}`,
