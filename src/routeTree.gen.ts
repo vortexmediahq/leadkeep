@@ -10,10 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LinksRouteImport } from './routes/links'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as QuestionsRouteImport } from './routes/questions'
 import { Route as QuoteStyleRouteImport } from './routes/quote-style'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LLinkIdRouteImport } from './routes/l.$linkId'
@@ -22,6 +25,11 @@ import { Route as LeadsLeadIdRouteImport } from './routes/leads.$leadId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LinksRoute = LinksRouteImport.update({
@@ -39,9 +47,19 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuestionsRoute = QuestionsRouteImport.update({
+  id: '/questions',
+  path: '/questions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuoteStyleRoute = QuoteStyleRouteImport.update({
   id: '/quote-style',
   path: '/quote-style',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServicesRoute = ServicesRouteImport.update({
@@ -67,10 +85,13 @@ const LeadsLeadIdRoute = LeadsLeadIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/questions': typeof QuestionsRoute
   '/quote-style': typeof QuoteStyleRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/signup': typeof SignupRoute
   '/l/$linkId': typeof LLinkIdRoute
@@ -78,10 +99,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/questions': typeof QuestionsRoute
   '/quote-style': typeof QuoteStyleRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/signup': typeof SignupRoute
   '/l/$linkId': typeof LLinkIdRoute
@@ -90,10 +114,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/questions': typeof QuestionsRoute
   '/quote-style': typeof QuoteStyleRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/signup': typeof SignupRoute
   '/l/$linkId': typeof LLinkIdRoute
@@ -103,10 +130,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/forgot-password'
     | '/links'
     | '/login'
     | '/pricing'
+    | '/questions'
     | '/quote-style'
+    | '/reset-password'
     | '/services'
     | '/signup'
     | '/l/$linkId'
@@ -114,10 +144,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/forgot-password'
     | '/links'
     | '/login'
     | '/pricing'
+    | '/questions'
     | '/quote-style'
+    | '/reset-password'
     | '/services'
     | '/signup'
     | '/l/$linkId'
@@ -125,10 +158,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/forgot-password'
     | '/links'
     | '/login'
     | '/pricing'
+    | '/questions'
     | '/quote-style'
+    | '/reset-password'
     | '/services'
     | '/signup'
     | '/l/$linkId'
@@ -137,10 +173,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LinksRoute: typeof LinksRoute
   LoginRoute: typeof LoginRoute
   PricingRoute: typeof PricingRoute
+  QuestionsRoute: typeof QuestionsRoute
   QuoteStyleRoute: typeof QuoteStyleRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
   SignupRoute: typeof SignupRoute
   LLinkIdRoute: typeof LLinkIdRoute
@@ -154,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/links': {
@@ -177,11 +223,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/questions': {
+      id: '/questions'
+      path: '/questions'
+      fullPath: '/questions'
+      preLoaderRoute: typeof QuestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quote-style': {
       id: '/quote-style'
       path: '/quote-style'
       fullPath: '/quote-style'
       preLoaderRoute: typeof QuoteStyleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/services': {
@@ -217,10 +277,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LinksRoute: LinksRoute,
   LoginRoute: LoginRoute,
   PricingRoute: PricingRoute,
+  QuestionsRoute: QuestionsRoute,
   QuoteStyleRoute: QuoteStyleRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
   SignupRoute: SignupRoute,
   LLinkIdRoute: LLinkIdRoute,
