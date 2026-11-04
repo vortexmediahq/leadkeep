@@ -10,7 +10,7 @@ import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pricing")({
-  head: () => ({ meta: [{ title: "Pricing · LeakKeep" }] }),
+  head: () => ({ meta: [{ title: "Pricing · LeadKeep" }] }),
   component: PricingPage,
 });
 
@@ -113,7 +113,7 @@ function Pricing() {
       <header className="max-w-xl">
         <h1 className="text-2xl font-semibold tracking-tight">Plans</h1>
         <p className="mt-1 text-sm text-muted">
-          Leads are always free. Upgrade when you want LeakKeep to write more of your quotes.
+          Leads are always free. Upgrade when you want LeadKeep to write more of your quotes.
         </p>
         {allowance && allowance.plan === "free" ? (
           <p className="mt-3 text-sm text-ink-soft">
@@ -136,7 +136,7 @@ function Pricing() {
           <div>
             <p className="font-semibold text-ink">Welcome to Pro</p>
             <p className="mt-1 text-sm text-ink-soft">
-              Your AI quotes are now unlimited. Thanks for backing LeakKeep.
+              Your AI quotes are now unlimited. Thanks for backing LeadKeep.
             </p>
           </div>
         </div>
