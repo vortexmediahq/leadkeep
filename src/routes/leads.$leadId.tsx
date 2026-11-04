@@ -14,7 +14,7 @@ import { STATUSES, type LeadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/leads/$leadId")({
-  head: () => ({ meta: [{ title: "Lead · LeakKeep" }] }),
+  head: () => ({ meta: [{ title: "Lead · LeadKeep" }] }),
   component: LeadPage,
 });
 
@@ -115,7 +115,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
     ["Phone", lead.phone],
     ["Email", lead.email],
     ["Address", lead.address],
-    ["Job", lead.jobType],
+    ["Form", lead.jobType],
     ["Urgency", lead.urgency],
     ["Preferred time", lead.preferredTime],
     ["Property", lead.propertyType],
@@ -156,10 +156,19 @@ function LeadDetail({ leadId }: { leadId: string }) {
                 </div>
               ) : null,
             )}
-            <div className="border-b border-line py-3 last:border-b-0">
-              <dt className="text-sm text-muted">What they told you</dt>
-              <dd className="mt-1 text-base break-words whitespace-pre-wrap text-ink">{lead.description}</dd>
-            </div>
+            {lead.responses.length ? (
+              lead.responses.map((item, index) => (
+                <div key={`${index}-${item.question}`} className="border-b border-line py-3 last:border-b-0">
+                  <dt className="text-sm text-muted">{item.question}</dt>
+                  <dd className="mt-1 text-base break-words whitespace-pre-wrap text-ink">{item.answer || "—"}</dd>
+                </div>
+              ))
+            ) : lead.description.trim() ? (
+              <div className="border-b border-line py-3 last:border-b-0">
+                <dt className="text-sm text-muted">Their answers</dt>
+                <dd className="mt-1 text-base break-words whitespace-pre-wrap text-ink">{lead.description}</dd>
+              </div>
+            ) : null}
           </dl>
           <div className="mt-4">
             <p className="mb-2 text-sm font-medium">Status</p>
@@ -201,7 +210,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
         <aside className="rounded-3xl border border-line bg-paper p-4 shadow-panel lg:sticky lg:top-6">
           <h2 className="text-lg font-semibold tracking-tight">Quote</h2>
           <p className="mt-1 text-sm text-muted">
-            Uses this job, your{" "}
+            Uses these answers, your{" "}
             <Link to="/services" className="font-medium text-primary">
               services
             </Link>
@@ -291,7 +300,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
             value={text}
             onChange={(event) => saveText(event.target.value)}
             readOnly={pending}
-            placeholder="Your quote will land here, built from this job, your prices and your quote style."
+            placeholder="Your quote will land here, built from these answers, your prices and your quote style."
           />
           <Button
             className="mt-3 w-full"

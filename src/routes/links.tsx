@@ -3,12 +3,13 @@ import { Check, Copy } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { Field, TextInput } from "@/components/ui/fields";
+import { Field, SelectInput, TextInput } from "@/components/ui/fields";
+import { SOURCE_OPTIONS } from "@/lib/question-templates";
 import { useLeakKeep } from "@/lib/store";
 import type { LeadLink } from "@/lib/types";
 
 export const Route = createFileRoute("/links")({
-  head: () => ({ meta: [{ title: "Lead links · LeakKeep" }] }),
+  head: () => ({ meta: [{ title: "Lead links · LeadKeep" }] }),
   component: LinksPage,
 });
 
@@ -27,7 +28,12 @@ function LinksDesk() {
   const addLink = useLeakKeep((state) => state.addLink);
   const updateLink = useLeakKeep((state) => state.updateLink);
   const removeLink = useLeakKeep((state) => state.removeLink);
-  const [source, setSource] = useState("");
+  const questionnaires = useLeakKeep((state) => state.questionnaires);
+  const questionnairesReady = useLeakKeep((state) => state.questionnairesReady);
+  const setLinkQuestionnaire = useLeakKeep((state) => state.setLinkQuestionnaire);
+  const [preset, setPreset] = useState<string>(SOURCE_OPTIONS[0]);
+  const [custom, setCustom] = useState("");
+  const [questionnaireId, setQuestionnaireId] = useState("");
   const [formError, setFormError] = useState("");
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -41,16 +47,16 @@ function LinksDesk() {
 
   async function create(event: FormEvent) {
     event.preventDefault();
-    const name = source.trim();
+    const name = (preset === "other" ? custom : preset).trim();
     if (!name) {
-      setFormError("Name the place you'll share it, like Facebook Ad.");
+      setFormError("Name the place you'll share it, like a poster or newsletter.");
       return;
     }
     setCreating(true);
     setFormError("");
     try {
-      await addLink(name.slice(0, 120));
-      setSource("");
+      await addLink(name.slice(0, 120), questionnaireId || null);
+      setCustom("");
     } catch {
       setFormError("Couldn't create the link. Check your connection and try again.");
     } finally {
@@ -75,7 +81,7 @@ function LinksDesk() {
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Lead links</h1>
         <p className="mt-1 max-w-xl text-sm text-muted">
-          Put a link on a Facebook ad, your website, Google Business, or Instagram. The person fills in the job. It lands here tagged with the source.
+          Make one link for each place you share it: a social post, an advert, your website or a QR flyer. People answer your questions and the lead lands in your inbox tagged with where it came from.
         </p>
       </header>
 
@@ -90,9 +96,10 @@ function LinksDesk() {
               onChange={(event) => updateBusiness({ name: event.target.value })}
             />
           </Field>
-          <Field id="biz-trade" label="Trade">
+          <Field id="biz-trade" label="Type of business">
             <TextInput
               id="biz-trade"
+              placeholder="e.g. Hair salon, Photographer, Coach"
               value={business.trade}
               onChange={(event) => updateBusiness({ trade: event.target.value })}
             />
@@ -132,21 +139,54 @@ function LinksDesk() {
       <section className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
         <h2 className="text-lg font-semibold tracking-tight">New link</h2>
         <p className="mt-1 text-sm text-muted">Every lead that comes through it is tagged with this source.</p>
-        <form onSubmit={create} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="min-w-0 flex-1">
-            <Field id="new-source" label="Source name" error={formError}>
-              <TextInput
-                id="new-source"
-                value={source}
-                maxLength={120}
-                placeholder="Facebook Ad"
-                onChange={(event) => setSource(event.target.value)}
-              />
+        <form onSubmit={create} className="mt-4 flex flex-col gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field id="new-source" label="Where will you share it?" error={preset === "other" ? undefined : formError}>
+              <SelectInput id="new-source" value={preset} onChange={(event) => setPreset(event.target.value)}>
+                {SOURCE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+                <option value="other">Somewhere else…</option>
+              </SelectInput>
+            </Field>
+            <Field
+              id="new-questionnaire"
+              label="Questions to ask"
+              hint={questionnairesReady && questionnaires.length === 0 ? "Build your own on the Questions page." : undefined}
+            >
+              <SelectInput
+                id="new-questionnaire"
+                value={questionnaireId}
+                disabled={!questionnairesReady}
+                onChange={(event) => setQuestionnaireId(event.target.value)}
+              >
+                <option value="">Standard (Quick enquiry)</option>
+                {questionnaires.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name || "Untitled questionnaire"}
+                  </option>
+                ))}
+              </SelectInput>
             </Field>
           </div>
-          <Button type="submit" disabled={creating}>
-            {creating ? "Creating…" : "Create link"}
-          </Button>
+          {preset === "other" ? (
+            <Field id="new-source-custom" label="Source name" error={formError}>
+              <TextInput
+                id="new-source-custom"
+                value={custom}
+                maxLength={120}
+                placeholder="e.g. Market stall poster"
+                onChange={(event) => setCustom(event.target.value)}
+              />
+            </Field>
+          ) : null}
+          <div>
+            <Button type="submit" disabled={creating}>
+              {creating ? "Creating…" : "Create link"}
+            </Button>
+          </div>
         </form>
       </section>
 
@@ -157,9 +197,15 @@ function LinksDesk() {
       ) : null}
 
       {links.length === 0 ? (
-        <p className="rounded-3xl border border-line bg-paper px-4 py-8 text-center text-sm text-muted">
-          No links yet. Create one to start collecting jobs.
-        </p>
+        <div className="rounded-3xl border border-dashed border-line bg-paper px-4 py-10 text-center">
+          <p className="font-medium text-ink">No links yet</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
+            Pick where you'll share it above and press Create link. Then paste the link into your post or advert.
+          </p>
+          <Button className="mt-4" onClick={() => document.getElementById("new-source")?.focus()}>
+            Create your first link
+          </Button>
+        </div>
       ) : (
         <ul className="flex flex-col gap-4">
           {links.map((link) => {
@@ -185,6 +231,24 @@ function LinksDesk() {
                   </Button>
                 </div>
                 <p className="mt-2 text-sm text-muted">Renaming changes the tag on new leads. The link stays the same.</p>
+                {questionnairesReady ? (
+                  <div className="mt-3">
+                    <Field id={`questions-${link.id}`} label="Questions on this link">
+                      <SelectInput
+                        id={`questions-${link.id}`}
+                        value={link.questionnaireId ?? ""}
+                        onChange={(event) => setLinkQuestionnaire(link.id, event.target.value || null)}
+                      >
+                        <option value="">Standard (Quick enquiry)</option>
+                        {questionnaires.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name || "Untitled questionnaire"}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </Field>
+                  </div>
+                ) : null}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button size="sm" variant="secondary" asChild>
                     <Link to="/l/$linkId" params={{ linkId: link.slug }} target="_blank">
@@ -214,7 +278,7 @@ function LinksDesk() {
                   )}
                 </div>
                 {confirming === link.id ? (
-                  <p className="mt-2 text-sm text-muted">Anyone with this link will no longer be able to send you jobs. Existing leads stay.</p>
+                  <p className="mt-2 text-sm text-muted">Anyone with this link will no longer be able to reach you through it. Existing leads stay.</p>
                 ) : null}
               </li>
             );

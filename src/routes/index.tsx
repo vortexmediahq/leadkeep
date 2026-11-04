@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { TextInput } from "@/components/ui/fields";
 import { useLeakKeep } from "@/lib/store";
@@ -9,7 +10,7 @@ import { STATUSES, type LeadStatus } from "@/lib/types";
 import { cn, oneLine } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
-  head: () => ({ meta: [{ title: "Leads · LeakKeep" }] }),
+  head: () => ({ meta: [{ title: "Leads · LeadKeep" }] }),
   component: DashboardPage,
 });
 
@@ -53,13 +54,13 @@ function Dashboard() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
           <p className="mt-1 text-sm text-muted">
-            {fresh > 0 ? `${fresh} new · ${counts.all} total` : `${counts.all} on your desk`}
+            {fresh > 0 ? `${fresh} new · ${counts.all} total` : `${counts.all} in your inbox`}
           </p>
         </div>
         <TextInput
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search name, job, or source"
+          placeholder="Search name, answers, or source"
           aria-label="Search leads"
         />
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
@@ -81,15 +82,20 @@ function Dashboard() {
           <p className="font-medium">
             {leads.length === 0 ? "No leads yet" : "Nothing matches this view"}
           </p>
-          <p className="mt-2 text-sm text-muted">
+          <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
             {leads.length === 0
-              ? "Share a lead link. New jobs show up here as soon as someone sends the form."
+              ? "Share your questionnaire link to get your first one. New leads show up here the moment someone answers."
               : "Try another status, or clear the search."}
           </p>
           {leads.length === 0 ? (
-            <Link to="/links" className="mt-4 inline-flex text-sm font-medium text-primary">
-              Get a lead link
-            </Link>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Button asChild>
+                <Link to="/links">Get your link</Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link to="/questions">Edit your questions</Link>
+              </Button>
+            </div>
           ) : null}
         </div>
       ) : (
