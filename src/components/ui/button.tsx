@@ -8,7 +8,8 @@ export const buttonClass = cva(
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-ink hover:bg-ink",
+        primary: "bg-primary text-primary-ink hover:bg-ink-soft",
+        accent: "bg-accent text-accent-ink hover:bg-accent-strong",
         secondary: "border border-line bg-paper text-ink hover:bg-mist",
         ghost: "bg-transparent text-ink-soft hover:bg-mist",
         danger: "border border-line bg-paper text-lost hover:bg-lost-soft",
