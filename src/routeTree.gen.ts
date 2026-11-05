@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LinksRouteImport } from './routes/links'
 import { Route as LoginRouteImport } from './routes/login'
@@ -18,6 +19,7 @@ import { Route as QuestionsRouteImport } from './routes/questions'
 import { Route as QuoteStyleRouteImport } from './routes/quote-style'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LLinkIdRouteImport } from './routes/l.$linkId'
 import { Route as LeadsLeadIdRouteImport } from './routes/leads.$leadId'
@@ -25,6 +27,11 @@ import { Route as LeadsLeadIdRouteImport } from './routes/leads.$leadId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedbackRoute = FeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -67,6 +74,11 @@ const ServicesRoute = ServicesRouteImport.update({
   path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -85,6 +97,7 @@ const LeadsLeadIdRoute = LeadsLeadIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/feedback': typeof FeedbackRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
@@ -93,12 +106,14 @@ export interface FileRoutesByFullPath {
   '/quote-style': typeof QuoteStyleRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/feedback': typeof FeedbackRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
@@ -107,6 +122,7 @@ export interface FileRoutesByTo {
   '/quote-style': typeof QuoteStyleRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
@@ -114,6 +130,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/feedback': typeof FeedbackRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
@@ -122,6 +139,7 @@ export interface FileRoutesById {
   '/quote-style': typeof QuoteStyleRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
@@ -130,6 +148,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/feedback'
     | '/forgot-password'
     | '/links'
     | '/login'
@@ -138,12 +157,14 @@ export interface FileRouteTypes {
     | '/quote-style'
     | '/reset-password'
     | '/services'
+    | '/settings'
     | '/signup'
     | '/l/$linkId'
     | '/leads/$leadId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/feedback'
     | '/forgot-password'
     | '/links'
     | '/login'
@@ -152,12 +173,14 @@ export interface FileRouteTypes {
     | '/quote-style'
     | '/reset-password'
     | '/services'
+    | '/settings'
     | '/signup'
     | '/l/$linkId'
     | '/leads/$leadId'
   id:
     | '__root__'
     | '/'
+    | '/feedback'
     | '/forgot-password'
     | '/links'
     | '/login'
@@ -166,6 +189,7 @@ export interface FileRouteTypes {
     | '/quote-style'
     | '/reset-password'
     | '/services'
+    | '/settings'
     | '/signup'
     | '/l/$linkId'
     | '/leads/$leadId'
@@ -173,6 +197,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FeedbackRoute: typeof FeedbackRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LinksRoute: typeof LinksRoute
   LoginRoute: typeof LoginRoute
@@ -181,6 +206,7 @@ export interface RootRouteChildren {
   QuoteStyleRoute: typeof QuoteStyleRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
+  SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   LLinkIdRoute: typeof LLinkIdRoute
   LeadsLeadIdRoute: typeof LeadsLeadIdRoute
@@ -193,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feedback': {
+      id: '/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof FeedbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -251,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -277,6 +317,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FeedbackRoute: FeedbackRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LinksRoute: LinksRoute,
   LoginRoute: LoginRoute,
@@ -285,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   QuoteStyleRoute: QuoteStyleRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
+  SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   LLinkIdRoute: LLinkIdRoute,
   LeadsLeadIdRoute: LeadsLeadIdRoute,
