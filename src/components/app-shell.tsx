@@ -1,8 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Inbox, Link2, ListChecks, LogOut, ScrollText, Wrench, X } from "lucide-react";
+import { Inbox, Link2, ListChecks, LogOut, MessageSquareHeart, ScrollText, Settings, Wrench, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { ClientGate } from "@/components/client-gate";
 import { Logo } from "@/components/mark";
+import { NotificationBell } from "@/components/notification-bell";
 import { PlanCard, PlanPill } from "@/components/plan-card";
 import { signOut, useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
@@ -145,7 +146,10 @@ function Shell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-mist md:flex">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-paper md:flex">
         <div className="px-4 py-5">
-          <Logo className="w-36" />
+          <div className="flex items-center justify-between gap-2">
+            <Logo className="w-36" />
+            <NotificationBell />
+          </div>
           <p className="mt-1 text-sm text-muted">Lead inbox</p>
         </div>
         <nav className="flex flex-col gap-1 px-3" aria-label="Desk">
@@ -157,6 +161,26 @@ function Shell({ children }: { children: ReactNode }) {
               count={item.to === "/" ? fresh : undefined}
             />
           ))}
+          <Link
+            to="/settings"
+            className={cn(
+              "press flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium",
+              path.startsWith("/settings") ? "bg-primary-soft text-primary" : "text-muted hover:bg-mist hover:text-ink",
+            )}
+          >
+            <Settings className="size-5" strokeWidth={1.75} aria-hidden="true" />
+            Settings
+          </Link>
+          <Link
+            to="/feedback"
+            className={cn(
+              "press flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium",
+              path.startsWith("/feedback") ? "bg-primary-soft text-primary" : "text-muted hover:bg-mist hover:text-ink",
+            )}
+          >
+            <MessageSquareHeart className="size-5" strokeWidth={1.75} aria-hidden="true" />
+            Tell us what you think
+          </Link>
         </nav>
         <div className="mt-auto border-t border-line px-3 py-4">
           <div className="mb-4">
@@ -182,6 +206,14 @@ function Shell({ children }: { children: ReactNode }) {
               <p className="truncate text-sm text-muted">{business.name || email}</p>
             </div>
             <PlanPill />
+            <NotificationBell />
+            <Link
+              to="/settings"
+              aria-label="Settings and feedback"
+              className="press grid size-11 place-items-center rounded-lg text-muted hover:bg-mist hover:text-ink"
+            >
+              <Settings className="size-5" strokeWidth={1.75} aria-hidden="true" />
+            </Link>
             <LogoutButton compact />
           </div>
         </header>
