@@ -3,7 +3,9 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Check, ChevronLeft, Copy, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { ContactButtons } from "@/components/contact-buttons";
 import { StatusBadge } from "@/components/status-badge";
+import { needsFollowUp } from "@/lib/alerts";
 import { Button } from "@/components/ui/button";
 import { SelectInput, TextArea } from "@/components/ui/fields";
 import { generateQuote } from "@/lib/quote.functions";
@@ -28,6 +30,7 @@ function LeadPage() {
 }
 
 function LeadDetail({ leadId }: { leadId: string }) {
+  const businessName = useLeakKeep((state) => state.business.name);
   const lead = useLeakKeep((state) => state.leads.find((item) => item.id === leadId));
   const hasServices = useLeakKeep((state) => state.services.some((service) => service.name.trim()));
   const hasStyle = useLeakKeep((state) =>
@@ -140,6 +143,28 @@ function LeadDetail({ leadId }: { leadId: string }) {
         </div>
         <StatusBadge status={lead.status} />
       </header>
+
+      {needsFollowUp(lead) ? (
+        <p role="status" className="rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-ink">
+          <strong>Follow up today.</strong> This lead came in over a day ago and isn't marked as contacted yet.
+        </p>
+      ) : null}
+
+      <section className="rounded-3xl border border-line bg-paper p-4 shadow-panel" aria-label="Get in touch">
+        <h2 className="mb-3 text-lg font-semibold tracking-tight">Get in touch</h2>
+        <ContactButtons
+          name={lead.name}
+          phone={lead.phone}
+          email={lead.email}
+          business={businessName}
+          onContact={() => {
+            if (current.status === "new") setStatus(current.id, "contacted");
+          }}
+        />
+        {lead.status === "new" ? (
+          <p className="mt-2 text-xs text-muted">Tapping a button marks this lead as contacted.</p>
+        ) : null}
+      </section>
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
         <section className="rounded-3xl border border-line bg-paper p-4 shadow-panel">

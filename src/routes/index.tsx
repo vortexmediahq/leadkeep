@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { TextInput } from "@/components/ui/fields";
+import { needsFollowUp } from "@/lib/alerts";
 import { useLeakKeep } from "@/lib/store";
 import { STATUSES, type LeadStatus } from "@/lib/types";
 import { cn, oneLine } from "@/lib/utils";
@@ -47,6 +48,7 @@ function Dashboard() {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   const fresh = counts.new;
+  const overdue = leads.filter((lead) => needsFollowUp(lead)).length;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
@@ -56,6 +58,11 @@ function Dashboard() {
           <p className="mt-1 text-sm text-muted">
             {fresh > 0 ? `${fresh} new · ${counts.all} total` : `${counts.all} in your inbox`}
           </p>
+          {overdue ? (
+            <p className="mt-2 rounded-xl bg-accent/10 px-3 py-2 text-sm">
+              {overdue === 1 ? "1 lead has" : `${overdue} leads have`} waited over a day. Give them a call or WhatsApp today.
+            </p>
+          ) : null}
         </div>
         <TextInput
           value={query}
@@ -109,7 +116,14 @@ function Dashboard() {
               >
                 <span className="flex items-start justify-between gap-3">
                   <span className="min-w-0 font-medium">{lead.name}</span>
-                  <StatusBadge status={lead.status} />
+                  <span className="flex shrink-0 items-center gap-2">
+                    {needsFollowUp(lead) ? (
+                      <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent-strong">
+                        Follow up
+                      </span>
+                    ) : null}
+                    <StatusBadge status={lead.status} />
+                  </span>
                 </span>
                 <span className="mt-1 block truncate text-sm text-ink-soft">
                   {lead.jobType || "General enquiry"}
