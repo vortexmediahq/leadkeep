@@ -1,3 +1,4 @@
+import { toEntitlements, type Entitlements } from "@/lib/entitlements";
 import { toAllowance, type Allowance } from "@/lib/plan";
 import { supabase } from "@/lib/supabase";
 import { parseQuestions } from "@/lib/question-templates";
@@ -358,4 +359,17 @@ export async function fetchAllowance(): Promise<Allowance | null> {
   const { data, error } = await supabase.rpc("quote_allowance");
   if (error) fail("load your plan", error);
   return toAllowance(data);
+}
+
+/** Needs supabase/proposed/20261110090000_plans_whop.sql. Returns null until that update is applied. */
+export async function fetchEntitlements(): Promise<Entitlements | null> {
+  const { data, error } = await supabase.rpc("my_entitlements");
+  if (error) return null;
+  return toEntitlements(data);
+}
+
+export async function fetchFoundingSpotsLeft(): Promise<number | null> {
+  const { data, error } = await supabase.rpc("founding_spots_left");
+  if (error || typeof data !== "number") return null;
+  return data;
 }

@@ -2,6 +2,8 @@ import { create } from "zustand";
 import {
   deleteLinkRow,
   fetchAllowance,
+  fetchEntitlements,
+  fetchFoundingSpotsLeft,
   deleteServiceRow,
   fetchLeadById,
   fetchLeads,
@@ -25,6 +27,7 @@ import {
   updateServiceRow,
   type StoredTemplate,
 } from "@/lib/data";
+import { NO_LIMITS, type Entitlements } from "@/lib/entitlements";
 import type { Allowance } from "@/lib/plan";
 import { blankBusiness, seedTemplate, starterLinkSources, starterServices } from "@/lib/seed";
 import type { Business, Lead, LeadLink, LeadStatus, Questionnaire, QuoteTemplate, Service } from "@/lib/types";
@@ -45,6 +48,8 @@ type LeakState = {
   leads: Lead[];
   incoming: Lead | null;
   allowance: Allowance | null;
+  entitlements: Entitlements;
+  foundingSpotsLeft: number | null;
   loadedFor: string | null;
   loadError: string;
   saveError: string;
@@ -55,6 +60,7 @@ type LeakState = {
   clearSaveError: () => void;
   dismissIncoming: () => void;
   setAllowance: (allowance: Allowance) => void;
+  refreshPlan: () => Promise<void>;
   updateBusiness: (patch: Partial<Business>) => void;
   updateTemplate: (patch: Partial<QuoteTemplate>) => void;
   addService: () => void;
@@ -147,19 +153,27 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
     leads: [],
     incoming: null,
     allowance: null,
+    entitlements: NO_LIMITS,
+    foundingSpotsLeft: null,
     loadedFor: null,
     loadError: "",
     saveError: "",
     load: async (userId) => {
       try {
-        let [services, template, leads, profile, links, allowance] = await Promise.all([
+        const [loadedServices, loadedTemplate, leads, loadedProfile, loadedLinks, allowance, entitlements, foundingSpotsLeft] = await Promise.all([
           fetchServices(),
           fetchTemplate(),
           fetchLeads(),
           fetchProfile(),
           fetchLinks(),
           fetchAllowance().catch(() => null),
+          fetchEntitlements().catch(() => null),
+          fetchFoundingSpotsLeft().catch(() => null),
         ]);
+        let services = loadedServices;
+        let template = loadedTemplate;
+        let profile = loadedProfile;
+        let links = loadedLinks;
         if (!template && services.length === 0) {
           services = starterServices.map((item) => ({ ...item, id: crypto.randomUUID() }));
           await insertServices(services);
@@ -184,6 +198,8 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
           business: profile,
           template: template ?? blank,
           allowance,
+          entitlements: entitlements ?? NO_LIMITS,
+          foundingSpotsLeft,
           loadedFor: userId,
           loadError: "",
         });
@@ -234,6 +250,8 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
         leads: [],
         incoming: null,
         allowance: null,
+        entitlements: NO_LIMITS,
+        foundingSpotsLeft: null,
         template: blank,
         loadedFor: null,
         loadError: "",
@@ -243,6 +261,18 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
     clearSaveError: () => set({ saveError: "" }),
     dismissIncoming: () => set({ incoming: null }),
     setAllowance: (allowance) => set({ allowance }),
+    refreshPlan: async () => {
+      const [entitlements, foundingSpotsLeft, allowance] = await Promise.all([
+        fetchEntitlements().catch(() => null),
+        fetchFoundingSpotsLeft().catch(() => null),
+        fetchAllowance().catch(() => null),
+      ]);
+      set((state) => ({
+        entitlements: entitlements ?? state.entitlements,
+        foundingSpotsLeft: foundingSpotsLeft ?? state.foundingSpotsLeft,
+        allowance: allowance ?? state.allowance,
+      }));
+    },
     updateBusiness: (patch) => {
       set((state) => ({ business: { ...state.business, ...patch } }));
       later("business", () => saveProfile(get().business));
