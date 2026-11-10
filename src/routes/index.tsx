@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
+import { Download, Lock, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { TextInput } from "@/components/ui/fields";
 import { needsFollowUp } from "@/lib/alerts";
-import { useLeakKeep } from "@/lib/store";
+import { LOCKED_PLACEHOLDER, leadsToCsv, lockedCount } from "@/lib/entitlements";
+import { useAccess, useGatedLeads } from "@/lib/use-access";
 import { STATUSES, type LeadStatus } from "@/lib/types";
 import { cn, oneLine } from "@/lib/utils";
 
@@ -26,7 +28,9 @@ function DashboardPage() {
 }
 
 function Dashboard() {
-  const leads = useLeakKeep((state) => state.leads);
+  const leads = useGatedLeads();
+  const access = useAccess();
+  const hidden = lockedCount(leads);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
 
@@ -41,6 +45,7 @@ function Dashboard() {
     .filter((lead) => filter === "all" || lead.status === filter)
     .filter((lead) => {
       if (!needle) return true;
+      if (lead.locked) return false;
       return `${lead.name} ${lead.jobType} ${lead.description} ${lead.source} ${lead.phone}`
         .toLowerCase()
         .includes(needle);
@@ -48,13 +53,38 @@ function Dashboard() {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   const fresh = counts.new;
+
+  const exportCsv = () => {
+    const blob = new Blob([leadsToCsv(leads)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `leadkeep-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
   const overdue = leads.filter((lead) => needsFollowUp(lead)).length;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <header className="flex flex-col gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
+            {access.features.csvExport ? (
+              <Button size="sm" variant="secondary" onClick={exportCsv} disabled={leads.length === 0}>
+                <Download className="size-4" aria-hidden="true" />
+                Export CSV
+              </Button>
+            ) : (
+              <Button asChild size="sm" variant="secondary">
+                <Link to="/pricing" aria-label="Export CSV is on Care and Growth">
+                  <Lock className="size-4" aria-hidden="true" />
+                  Export CSV
+                </Link>
+              </Button>
+            )}
+          </div>
           <p className="mt-1 text-sm text-muted">
             {fresh > 0 ? `${fresh} new · ${counts.all} total` : `${counts.all} in your inbox`}
           </p>
@@ -64,6 +94,22 @@ function Dashboard() {
             </p>
           ) : null}
         </div>
+        {hidden > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent/40 bg-accent-soft px-4 py-3">
+            <p className="text-sm text-ink">
+              <span className="font-semibold">
+                {hidden} {hidden === 1 ? "lead is" : "leads are"} saved and waiting.
+              </span>{" "}
+              Your Free plan shows the details of your first 10 leads. Upgrade to see who {hidden === 1 ? "this is" : "they are"} and reply.
+            </p>
+            <Button asChild size="sm">
+              <Link to="/pricing">
+                <Sparkles className="size-4" aria-hidden="true" />
+                Unlock my leads
+              </Link>
+            </Button>
+          </div>
+        ) : null}
         <TextInput
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -115,7 +161,12 @@ function Dashboard() {
                 className="block px-4 py-4 transition-colors duration-150 hover:bg-mist"
               >
                 <span className="flex items-start justify-between gap-3">
-                  <span className="min-w-0 font-medium">{lead.name}</span>
+                  <span className="flex min-w-0 items-center gap-2 font-medium">
+                    {lead.locked ? <Lock className="size-4 shrink-0 text-accent-strong" aria-label="Hidden until you upgrade" /> : null}
+                    <span className={cn("truncate", lead.locked && "select-none blur-[5px]")} aria-hidden={lead.locked}>
+                      {lead.locked ? "Jordan Example" : lead.name}
+                    </span>
+                  </span>
                   <span className="flex shrink-0 items-center gap-2">
                     {needsFollowUp(lead) ? (
                       <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent-strong">
@@ -125,10 +176,19 @@ function Dashboard() {
                     <StatusBadge status={lead.status} />
                   </span>
                 </span>
-                <span className="mt-1 block truncate text-sm text-ink-soft">
-                  {lead.jobType || "General enquiry"}
-                  {lead.description ? ` — ${oneLine(lead.description, 80)}` : ""}
-                </span>
+                {lead.locked ? (
+                  <span className="mt-1 block truncate text-sm text-ink-soft">
+                    <span className="select-none blur-[5px]" aria-hidden="true">
+                      Wants a quote for their wedding in March
+                    </span>
+                    <span className="sr-only">{LOCKED_PLACEHOLDER.line}</span>
+                  </span>
+                ) : (
+                  <span className="mt-1 block truncate text-sm text-ink-soft">
+                    {lead.jobType || "General enquiry"}
+                    {lead.description ? ` — ${oneLine(lead.description, 80)}` : ""}
+                  </span>
+                )}
                 <span className="mt-1 block text-sm text-muted">
                   {lead.source} · {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })}
                 </span>

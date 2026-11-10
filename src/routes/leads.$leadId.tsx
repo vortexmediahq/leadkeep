@@ -11,6 +11,7 @@ import { SelectInput, TextArea } from "@/components/ui/fields";
 import { generateQuote } from "@/lib/quote.functions";
 import { quotesLeft } from "@/lib/plan";
 import { useLeakKeep } from "@/lib/store";
+import { useAccess, useGatedLeads } from "@/lib/use-access";
 import { supabase } from "@/lib/supabase";
 import { STATUSES, type LeadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,9 @@ function LeadPage() {
 
 function LeadDetail({ leadId }: { leadId: string }) {
   const businessName = useLeakKeep((state) => state.business.name);
-  const lead = useLeakKeep((state) => state.leads.find((item) => item.id === leadId));
+  const leads = useGatedLeads();
+  const lead = leads.find((item) => item.id === leadId);
+  const access = useAccess();
   const hasServices = useLeakKeep((state) => state.services.some((service) => service.name.trim()));
   const hasStyle = useLeakKeep((state) =>
     [state.template.tone, state.template.structure, state.template.paymentTerms].some((part) => part.trim()),
@@ -66,8 +69,37 @@ function LeadDetail({ leadId }: { leadId: string }) {
     );
   }
 
+  if (lead.locked) {
+    return (
+      <div className="mx-auto flex max-w-3xl flex-col gap-4">
+        <Link to="/" className="inline-flex min-h-11 items-center gap-1 self-start text-sm font-medium text-muted">
+          <ChevronLeft className="size-4" aria-hidden="true" />
+          Leads
+        </Link>
+        <div className="rounded-3xl border border-accent/40 bg-accent-soft p-6">
+          <h1 className="text-2xl font-semibold tracking-tight">This lead is saved for you</h1>
+          <p className="mt-2 text-sm text-ink-soft">
+            Someone got in touch {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })} through {lead.source || "your link"}.
+            Your Free plan shows the details of your first 10 leads. Upgrade to see their name, number and answers, and reply while
+            they're still interested.
+          </p>
+          <p className="mt-4 select-none text-sm text-ink-soft blur-[5px]" aria-hidden="true">
+            Jordan Example · 082 000 0000 · jordan@example.com
+          </p>
+          <Button asChild className="mt-4">
+            <Link to="/pricing">
+              <Sparkles className="size-4" aria-hidden="true" />
+              Unlock my leads
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const current = lead;
-  const outOfQuotes = allowance?.plan === "free" && quotesLeft(allowance) === 0;
+  const aiOn = access.features.aiQuotes;
+  const outOfQuotes = !aiOn || (allowance?.plan === "free" && quotesLeft(allowance) === 0);
 
   const saveText = (value: string) => {
     setText(value);
@@ -274,7 +306,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
           ) : null}
           {outOfQuotes ? (
             <div className="mt-4 rounded-xl border border-primary/30 bg-primary-soft p-3">
-              <p className="text-sm font-medium text-ink">You've used all {allowance?.limit} free AI quotes this month</p>
+              <p className="text-sm font-medium text-ink">AI-written quotes are on Care and Growth</p>
               <p className="mt-1 text-sm text-ink-soft">
                 You can still write and edit this quote yourself. Upgrade for unlimited AI quotes.
               </p>
@@ -307,7 +339,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
               {pending ? "Writing quote…" : text.trim() ? "Regenerate quote" : "Generate quote"}
             </Button>
           )}
-          {allowance?.plan === "free" && !outOfQuotes ? (
+          {aiOn && allowance?.plan === "free" && allowance.limit > 0 && !outOfQuotes ? (
             <p className="mt-2 text-center text-xs text-muted">
               {quotesLeft(allowance)} of {allowance.limit} free AI quotes left this month ·{" "}
               <Link to="/pricing" className="font-medium text-primary">

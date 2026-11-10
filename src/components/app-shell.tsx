@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ClientGate } from "@/components/client-gate";
 import { Logo } from "@/components/mark";
 import { NotificationBell } from "@/components/notification-bell";
-import { PlanCard, PlanPill } from "@/components/plan-card";
+import { PlanCard, PlanPill, TesterReminder } from "@/components/plan-card";
 import { signOut, useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -229,6 +229,7 @@ function Shell({ children }: { children: ReactNode }) {
               </button>
             </div>
           ) : null}
+          <TesterReminder />
           {children}
         </main>
       </div>

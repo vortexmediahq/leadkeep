@@ -5,12 +5,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { needsFollowUp, unreadLeads, wantsApp } from "@/lib/alerts";
 import { useAlerts } from "@/lib/alert-store";
 import { useSession } from "@/lib/session";
-import { useLeakKeep } from "@/lib/store";
+import { useGatedLeads } from "@/lib/use-access";
 import { cn } from "@/lib/utils";
 
 export function NotificationBell({ className }: { className?: string }) {
   const userId = useSession((state) => state.user?.id ?? null);
-  const leads = useLeakKeep((state) => state.leads);
+  const leads = useGatedLeads();
   const { channel, lastSeenAt, load, markSeen } = useAlerts();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
