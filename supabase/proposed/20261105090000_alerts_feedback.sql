@@ -1,8 +1,7 @@
 /*
   # New-lead alerts + feedback (stage 2)
 
-  NOT YET APPLIED. Kept outside supabase/migrations so nothing runs it automatically.
-  Apply once in the Supabase SQL editor after review. The app keeps working without it
+  Applied as a migration on 2026-11-10. The app keeps working without it
   (alert choice is kept on the device; feedback shows "couldn't send yet").
 
   1. alert_settings: one row per owner. channel = 'app' | 'email' | 'both' (default 'both'),

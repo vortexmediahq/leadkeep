@@ -1,8 +1,7 @@
 /*
   # Plans, free-plan lead gate and Whop billing (stage 3)
 
-  NOT YET APPLIED. Kept outside supabase/migrations so nothing runs it automatically.
-  Run it once in the Supabase SQL editor AFTER stage 2's 20261105090000_alerts_feedback.sql
+  Applied as a migration on 2026-11-10, after stage 2's 20261105090000_alerts_feedback.sql
   (this file re-creates the small admin helper from it just in case, so it is safe either way).
   The app keeps working without it: until it is applied nobody is limited and the pricing page
   simply shows the plans.

@@ -1,9 +1,7 @@
 /*
   # Questionnaires (stage 1)
 
-  NOT YET APPLIED, and kept outside supabase/migrations on purpose so nothing runs it
-  automatically. Review it, then apply it once (Supabase SQL editor, or ask Bolt to
-  add it as a migration).
+  Applied as a migration on 2026-11-10.
   The app keeps working without it: links fall back to the default questionnaire
   and answers are still saved inside the lead's description.
 
