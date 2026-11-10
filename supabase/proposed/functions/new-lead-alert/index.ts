@@ -29,6 +29,10 @@ Deno.serve(async (req) => {
   if (payload?.type !== "INSERT" || !lead?.user_id) return new Response("ignored", { status: 200 });
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  // Email alerts are a Care/Growth feature. If the stage 3 SQL isn't applied yet the call fails and we send as before.
+  const { data: tier, error: tierError } = await admin.rpc("entitlement_tier", { p_user: lead.user_id });
+  if (!tierError && tier === "free") return new Response("free plan: no email alerts", { status: 200 });
+
   const { data: settings } = await admin.from("alert_settings").select("channel").eq("user_id", lead.user_id).maybeSingle();
   const channel = settings?.channel ?? "both";
   if (channel === "app") return new Response("owner chose app only", { status: 200 });
