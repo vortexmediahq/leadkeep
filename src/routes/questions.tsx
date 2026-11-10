@@ -5,6 +5,8 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/fields";
 import { blankQuestion, fromTemplate, QUESTION_TEMPLATES } from "@/lib/question-templates";
+import { canAddQuestionnaire } from "@/lib/entitlements";
+import { useAccess } from "@/lib/use-access";
 import { useLeakKeep } from "@/lib/store";
 import { QUESTION_TYPES, type Question, type QuestionType, type Questionnaire } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -27,6 +29,8 @@ function Questions() {
   const questionnaires = useLeakKeep((state) => state.questionnaires);
   const create = useLeakKeep((state) => state.createQuestionnaire);
   const duplicate = useLeakKeep((state) => state.duplicateQuestionnaire);
+  const access = useAccess();
+  const canAdd = canAddQuestionnaire(access, questionnaires.length);
   const [openId, setOpenId] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState("");
@@ -57,7 +61,12 @@ function Questions() {
             Build the questionnaire people fill in from your links. Name, email and phone are always asked for you.
           </p>
         </div>
-        {ready ? (
+        {ready && !canAdd ? (
+          <Button asChild variant="secondary">
+            <Link to="/pricing">More questionnaires on Care</Link>
+          </Button>
+        ) : null}
+        {ready && canAdd ? (
           <Button onClick={() => setPicking((value) => !value)} aria-expanded={picking}>
             <Plus className="size-4" aria-hidden="true" />
             New questionnaire
@@ -124,8 +133,8 @@ function Questions() {
                 <Button
                   size="sm"
                   variant="secondary"
-                  disabled={busy}
                   onClick={() => void withBusy(() => duplicate(item.id))}
+                  disabled={busy || !canAdd}
                   aria-label={`Duplicate ${item.name}`}
                 >
                   <Copy className="size-4" aria-hidden="true" />

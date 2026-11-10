@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { ALERT_CHANNELS } from "@/lib/alerts";
+import { ALERT_CHANNELS, wantsEmail } from "@/lib/alerts";
+import { useAccess } from "@/lib/use-access";
 import { useAlerts } from "@/lib/alert-store";
 import { useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
@@ -27,6 +28,7 @@ function Settings() {
   const businessEmail = useLeakKeep((state) => state.business.email);
   const { channel, load, setChannel } = useAlerts();
   const [saved, setSaved] = useState(false);
+  const emailOk = useAccess().features.emailAlerts;
 
   useEffect(() => {
     if (userId) void load(userId);
@@ -45,19 +47,23 @@ function Settings() {
         <h2 className="text-lg font-semibold tracking-tight">New lead alerts</h2>
         <fieldset className="mt-3 flex flex-col gap-2">
           <legend className="sr-only">How should we tell you about new leads?</legend>
-          {ALERT_CHANNELS.map((option) => (
+          {ALERT_CHANNELS.map((option) => {
+            const locked = !emailOk && wantsEmail(option.id);
+            return (
             <label
               key={option.id}
               className={cn(
-                "press flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3",
-                channel === option.id ? "border-accent bg-accent-soft" : "border-line",
+                "press flex items-start gap-3 rounded-2xl border px-4 py-3",
+                locked ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+                channel === option.id && !locked ? "border-accent bg-accent-soft" : "border-line",
               )}
             >
               <input
                 type="radio"
                 name="alert-channel"
                 className="mt-1 size-4 accent-[#FF5F03]"
-                checked={channel === option.id}
+                checked={locked ? false : emailOk ? channel === option.id : option.id === "app"}
+                disabled={locked}
                 onChange={() => {
                   void setChannel(option.id).then(() => {
                     setSaved(true);
@@ -67,14 +73,26 @@ function Settings() {
               />
               <span>
                 <span className="block font-medium">{option.label}</span>
-                <span className="block text-sm text-muted">{option.help}</span>
+                <span className="block text-sm text-muted">
+                  {locked ? "Email alerts come with Care and Growth." : option.help}
+                </span>
               </span>
             </label>
-          ))}
+            );
+          })}
         </fieldset>
         <p className="mt-3 text-sm text-muted" aria-live="polite">
-          {saved ? "Saved." : channel !== "app" ? `Emails go to ${sendTo || "your login email"}.` : "\u00a0"}
+          {saved ? "Saved." : emailOk && channel !== "app" ? `Emails go to ${sendTo || "your login email"}.` : "\u00a0"}
         </p>
+        {!emailOk ? (
+          <p className="mt-3 text-sm text-ink-soft">
+            On the Free plan new leads show up under the bell.{" "}
+            <Link to="/pricing" className="font-medium text-primary">
+              Upgrade for email alerts
+            </Link>
+            .
+          </p>
+        ) : null}
         <p className="mt-1 text-sm text-muted">
           Want emails sent somewhere else? Change the email in your business details on the{" "}
           <Link to="/links" className="font-medium text-primary">
