@@ -3,6 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Download, Lock, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { SetupRing } from "@/components/setup-ring";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { TextInput } from "@/components/ui/fields";
@@ -55,18 +56,21 @@ function Dashboard() {
   const fresh = counts.new;
 
   const exportCsv = () => {
-    const blob = new Blob([leadsToCsv(leads)], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob([leadsToCsv(leads)], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = `leadkeep-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
     link.click();
+    link.remove();
     URL.revokeObjectURL(url);
   };
   const overdue = leads.filter((lead) => needsFollowUp(lead)).length;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
+      <SetupRing />
       <header className="flex flex-col gap-4">
         <div>
           <div className="flex items-center justify-between gap-3">

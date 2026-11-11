@@ -152,7 +152,8 @@ test("toEntitlements reads the database answer safely", () => {
 test("CSV export skips hidden leads, quotes commas and blocks spreadsheet formulas", () => {
   const leads = gateLeads([lead(1, { name: 'Smith, "Jo"' }), lead(2, { name: "=HYPERLINK(1)" }), ...makeLeads(12).slice(2)], ACCESS.free);
   const csv = leadsToCsv(leads);
-  const rows = csv.split("\r\n");
+  assert.ok(csv.startsWith("\uFEFF"), "Excel needs a UTF-8 BOM");
+  const rows = csv.replace(/^\uFEFF/, "").split("\r\n");
   assert.equal(rows.length, 1 + FREE_LEAD_LIMIT);
   assert.ok(rows[1].includes('"Smith, ""Jo"""'));
   assert.ok(rows[2].includes("'=HYPERLINK(1)"));

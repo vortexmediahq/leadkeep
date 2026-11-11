@@ -3,6 +3,7 @@ import { Inbox, Link2, ListChecks, LogOut, MessageSquareHeart, ScrollText, Setti
 import { useEffect, useState, type ReactNode } from "react";
 import { ClientGate } from "@/components/client-gate";
 import { Logo } from "@/components/mark";
+import { PoweredBy } from "@/components/powered-by";
 import { NotificationBell } from "@/components/notification-bell";
 import { PlanCard, PlanPill, TesterReminder } from "@/components/plan-card";
 import { signOut, useSession } from "@/lib/session";
@@ -195,6 +196,7 @@ function Shell({ children }: { children: ReactNode }) {
           <div className="mt-3">
             <LogoutButton />
           </div>
+          <PoweredBy className="mt-3" />
         </div>
       </aside>
 
@@ -217,7 +219,7 @@ function Shell({ children }: { children: ReactNode }) {
             <LogoutButton compact />
           </div>
         </header>
-        <main className="px-4 py-6 pb-28 md:px-8 md:py-8 md:pb-10">
+        <main className="px-4 py-6 pb-36 md:px-8 md:py-8 md:pb-10">
           {saveError ? (
             <div
               role="alert"
@@ -231,6 +233,7 @@ function Shell({ children }: { children: ReactNode }) {
           ) : null}
           <TesterReminder />
           {children}
+          <PoweredBy className="mx-auto mt-10 max-w-3xl md:mt-12" />
         </main>
       </div>
 

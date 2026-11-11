@@ -187,5 +187,5 @@ export function leadsToCsv(leads: GatedLead[]): string {
         .map((cell) => csvCell(safe(cell)))
         .join(","),
     );
-  return [header.join(","), ...rows].join("\r\n");
+  return `\uFEFF${[header.join(","), ...rows].join("\r\n")}`;
 }

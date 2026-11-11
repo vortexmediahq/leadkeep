@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuthCard } from "@/components/auth-card";
 import { Button } from "@/components/ui/button";
-import { Field, TextInput } from "@/components/ui/fields";
+import { Field, PasswordInput, TextInput } from "@/components/ui/fields";
 import { updatePassword } from "@/lib/session";
 import { supabase } from "@/lib/supabase";
 
@@ -67,7 +67,7 @@ function ResetPassword() {
         title="This link has expired"
         lead="Reset links work once and only for a short time. Ask for a new one."
         footer={
-          <Link to="/login" className="font-medium text-primary hover:text-accent">
+          <Link to="/login" className="font-medium text-accent hover:underline">
             Back to log in
           </Link>
         }
@@ -83,18 +83,16 @@ function ResetPassword() {
     <AuthCard title="Set a new password" lead="Choose a new password for your LeadKeep account.">
       <form onSubmit={(event) => void submit(event)} noValidate className="flex flex-col gap-4">
         <Field id="new-password" label="New password" error={errors.password} hint="At least 6 characters.">
-          <TextInput
+          <PasswordInput
             id="new-password"
-            type="password"
             autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
         </Field>
         <Field id="confirm-password" label="Type it again" error={errors.confirm}>
-          <TextInput
+          <PasswordInput
             id="confirm-password"
-            type="password"
             autoComplete="new-password"
             value={confirm}
             onChange={(event) => setConfirm(event.target.value)}

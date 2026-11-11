@@ -32,7 +32,6 @@ function Questions() {
   const access = useAccess();
   const canAdd = canAddQuestionnaire(access, questionnaires.length);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [picking, setPicking] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -42,7 +41,6 @@ function Questions() {
     try {
       const id = await task();
       if (id) setOpenId(id);
-      setPicking(false);
     } catch {
       setError("Couldn't save. Check your connection and try again.");
     } finally {
@@ -61,13 +59,12 @@ function Questions() {
             Build the questionnaire people fill in from your links. Name, email and phone are always asked for you.
           </p>
         </div>
-        {ready && !canAdd ? (
-          <Button asChild variant="secondary">
-            <Link to="/pricing">More questionnaires on Care</Link>
-          </Button>
-        ) : null}
-        {ready && canAdd ? (
-          <Button onClick={() => setPicking((value) => !value)} aria-expanded={picking}>
+        {ready ? (
+          <Button
+            onClick={() => {
+              document.getElementById("templates")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          >
             <Plus className="size-4" aria-hidden="true" />
             New questionnaire
           </Button>
@@ -89,19 +86,31 @@ function Questions() {
         </p>
       ) : null}
 
-      {ready && (picking || questionnaires.length === 0) ? (
-        <section className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
+      {ready ? (
+        <section id="templates" className="scroll-mt-20 rounded-3xl border border-line bg-paper p-4 shadow-panel">
           <h2 className="text-lg font-semibold tracking-tight">
-            {questionnaires.length === 0 ? "Start with a template" : "Pick a template"}
+            {questionnaires.length === 0 ? "Start with a template" : "Start another from a template"}
           </h2>
-          <p className="mt-1 text-sm text-muted">You can change every question afterwards.</p>
+          <p className="mt-1 text-sm text-muted">
+            {canAdd
+              ? "You can change every question afterwards. Templates stay here whenever you want a new questionnaire."
+              : "You've reached the number of questionnaires on your plan. Upgrade to add another, or edit one you already have."}
+          </p>
+          {!canAdd ? (
+            <Button asChild variant="secondary" className="mt-3">
+              <Link to="/pricing">More questionnaires on Care</Link>
+            </Button>
+          ) : null}
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
             {QUESTION_TEMPLATES.map((template) => (
               <li key={template.key}>
                 <button
                   type="button"
-                  disabled={busy}
-                  onClick={() => void withBusy(() => create(fromTemplate(template)))}
+                  disabled={busy || !canAdd}
+                  onClick={() => {
+                    if (!canAdd) return;
+                    void withBusy(() => create(fromTemplate(template)));
+                  }}
                   className="press flex h-full w-full flex-col items-start rounded-2xl border border-line bg-mist p-4 text-left hover:border-accent disabled:opacity-50"
                 >
                   <span className="font-medium text-ink">{template.name}</span>

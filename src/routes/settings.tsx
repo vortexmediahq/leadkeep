@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { ALERT_CHANNELS, wantsEmail } from "@/lib/alerts";
+import { effectiveTier } from "@/lib/entitlements";
+import { NOTIFY_SETUP_KEY } from "@/lib/setup-progress";
 import { useAccess } from "@/lib/use-access";
 import { useAlerts } from "@/lib/alert-store";
 import { useSession } from "@/lib/session";
@@ -26,13 +28,30 @@ function Settings() {
   const userId = useSession((state) => state.user?.id ?? null);
   const loginEmail = useSession((state) => state.user?.email ?? "");
   const businessEmail = useLeakKeep((state) => state.business.email);
+  const entitlements = useLeakKeep((state) => state.entitlements);
   const { channel, load, setChannel } = useAlerts();
   const [saved, setSaved] = useState(false);
   const emailOk = useAccess().features.emailAlerts;
+  const tier = effectiveTier(entitlements);
+  const planName = entitlements.admin
+    ? "Owner access (no limits)"
+    : entitlements.tier === "free" && tier !== "free" && !entitlements.admin
+      ? "early access (full, for now)"
+      : {"free": "the Free plan", "care": "the Care plan", "growth": "the Growth plan"}[tier] +
+        (entitlements.founding ? ", at the founding price" : "");
+  const canUpgrade = !entitlements.admin && tier !== "growth";
 
   useEffect(() => {
     if (userId) void load(userId);
   }, [userId, load]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(NOTIFY_SETUP_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const sendTo = businessEmail.trim() || loginEmail;
 
@@ -43,7 +62,18 @@ function Settings() {
         <p className="mt-1 text-sm text-muted">Choose how LeadKeep tells you about new leads.</p>
       </header>
 
-      <section className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
+      <section id="plan" className="scroll-mt-20 rounded-3xl border border-line bg-paper p-4 shadow-panel">
+        <h2 className="text-lg font-semibold tracking-tight">Your plan</h2>
+        <p className="mt-1 text-sm text-muted">
+          You're on <span className="font-medium text-ink">{planName}</span>.
+          {entitlements.periodEnd ? " Renews or ends on the date shown on the pricing page." : ""}
+        </p>
+        <Button asChild className="mt-3" variant={canUpgrade ? "accent" : "secondary"}>
+          <Link to="/pricing">{canUpgrade ? "Upgrade" : "See plans"}</Link>
+        </Button>
+      </section>
+
+      <section id="alerts" className="scroll-mt-20 rounded-3xl border border-line bg-paper p-4 shadow-panel">
         <h2 className="text-lg font-semibold tracking-tight">New lead alerts</h2>
         <fieldset className="mt-3 flex flex-col gap-2">
           <legend className="sr-only">How should we tell you about new leads?</legend>

@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
-import { Logo, Mark } from "@/components/mark";
+import { Mark } from "@/components/mark";
+import { PoweredBy } from "@/components/powered-by";
 import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/fields";
 import { fetchPublicForm, submitLeadViaLink, type PublicForm } from "@/lib/data";
@@ -39,6 +40,7 @@ function FormMessage({ title, body }: { title: string; body: string }) {
         <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
         <p className="mt-2 text-base text-ink-soft">{body}</p>
       </div>
+      <PoweredBy className="mt-6" />
     </main>
   );
 }
@@ -160,6 +162,7 @@ function Capture({ slug, form, onAnother }: { slug: string; form: PublicForm; on
             Send another response
           </Button>
         </div>
+        <PoweredBy className="mt-6" />
       </main>
     );
   }
@@ -223,13 +226,8 @@ function Capture({ slug, form, onAnother }: { slug: string; form: PublicForm; on
           </Button>
         </div>
       </form>
-      <a
-        href="https://leadkeep.whop.site"
-        target="_blank"
-        rel="noreferrer"
-        className="mx-auto mt-6 flex items-center gap-2 text-sm text-muted"
-      >
-        Powered by <Logo className="w-20" />
+      <a href="https://leadkeep.whop.site" target="_blank" rel="noreferrer" className="mt-6 block">
+        <PoweredBy />
       </a>
     </main>
   );
