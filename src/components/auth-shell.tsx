@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { LogoOnDark } from "@/components/mark";
-import { INTRO, IntroFilm, useIntroMotion, usePortraitFilm } from "@/components/startup-screen";
+import { INTRO, IntroFilm, useIntroMotion } from "@/components/startup-screen";
 
 const SEEN_KEY = "leadkeep.startup.seen";
 
@@ -35,7 +35,6 @@ function useIntro() {
 export function AuthShell({ children }: { children: ReactNode }) {
   const intro = useIntro();
   const logoRef = useRef<HTMLDivElement>(null);
-  const portrait = usePortraitFilm();
   const motion = useIntroMotion({
     active: intro.ready && intro.show,
     reduced: intro.reduced,
@@ -50,7 +49,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-primary px-4 py-10">
       {intro.show && !intro.reduced && motion.showFilm ? (
-        <IntroFilm portrait={portrait} scale={motion.filmScale} opacity={motion.filmOpacity} moving={motion.moving} />
+        <IntroFilm opacity={motion.filmOpacity} moving={motion.moving} />
       ) : null}
 
       <div
@@ -69,7 +68,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         aria-hidden="true"
       />
 
-      <div className="relative w-full max-w-sm">
+      <div className="relative z-[1] w-full max-w-sm">
         <div className="mb-6 flex justify-center">
           <div ref={logoRef} style={motion.logoStyle}>
             <LogoOnDark className="w-44" />

@@ -43,7 +43,7 @@ function ForgotPassword() {
   if (sent) {
     return (
       <AuthCard title="Check your email" lead={`If ${email.trim()} has a LeadKeep account, a reset link is on its way. It can take a minute; check spam too.`} footer={back}>
-        <Button variant="secondary" className="w-full" onClick={() => setSent(false)}>
+        <Button variant="secondary" className="w-full border-white/20 bg-transparent text-white hover:bg-white/10" onClick={() => setSent(false)}>
           Use a different email
         </Button>
       </AuthCard>
@@ -53,7 +53,7 @@ function ForgotPassword() {
   return (
     <AuthCard title="Forgot your password?" lead="Enter your account email and we'll send you a link to set a new one." footer={back}>
       <form onSubmit={(event) => void submit(event)} noValidate className="flex flex-col gap-4">
-        <Field id="reset-email" label="Email" error={error}>
+        <Field id="reset-email" label="Email" error={error} tone="onDark">
           <TextInput
             id="reset-email"
             type="email"
@@ -61,9 +61,10 @@ function ForgotPassword() {
             inputMode="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            tone="onDark"
           />
         </Field>
-        <Button type="submit" className="w-full" disabled={pending}>
+        <Button type="submit" variant="accent" className="w-full" disabled={pending}>
           {pending ? "Sending…" : "Send reset link"}
         </Button>
       </form>
