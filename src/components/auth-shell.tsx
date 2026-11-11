@@ -49,7 +49,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-primary px-4 py-10">
-      {intro.show && !intro.reduced ? (
+      {intro.show && !intro.reduced && motion.showFilm ? (
         <IntroFilm portrait={portrait} scale={motion.filmScale} opacity={motion.filmOpacity} moving={motion.moving} />
       ) : null}
 

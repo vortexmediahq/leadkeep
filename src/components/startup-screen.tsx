@@ -31,8 +31,10 @@ export function usePortraitFilm() {
 }
 
 type Fly = { x: number; y: number; scale: number };
+type Phase = "idle" | "start" | "logo" | "arm" | "handover" | "done";
 
 const REST: Fly = { x: 0, y: 0, scale: 1 };
+const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 
 function measureCenteredFly(node: HTMLElement, scale: number): Fly {
   const rect = node.getBoundingClientRect();
@@ -43,11 +45,13 @@ function measureCenteredFly(node: HTMLElement, scale: number): Fly {
   };
 }
 
-const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
-
 /**
  * Drives the plant-to-login motion. The logo lives in its final DOM slot the
  * whole time; a transform only parks it over the plant until the handoff.
+ *
+ * Phases are derived so the first painted intro frame is already the start
+ * pose (no reverse fade). Handoff is armed in one frame, then moved in the
+ * next, so CSS actually animates transform and opacity.
  */
 export function useIntroMotion({
   active,
@@ -60,64 +64,53 @@ export function useIntroMotion({
   logoRef: RefObject<HTMLElement | null>;
   onDone: () => void;
 }) {
+  const [phase, setPhase] = useState<Phase>("idle");
   const [fly, setFly] = useState<Fly>(REST);
-  const [moving, setMoving] = useState(false);
-  const [logoOpacity, setLogoOpacity] = useState(1);
-  const [stageOpacity, setStageOpacity] = useState(1);
-  const [filmOpacity, setFilmOpacity] = useState(0);
-  const [filmScale, setFilmScale] = useState<number>(INTRO.filmStartScale);
-  const [skipVisible, setSkipVisible] = useState(false);
-  const movingRef = useRef(false);
+  const phaseRef = useRef<Phase>("idle");
+
+  const visual: Phase = active && phase === "idle" ? "start" : active ? phase : "idle";
 
   useLayoutEffect(() => {
     if (!active) {
+      phaseRef.current = "idle";
+      setPhase("idle");
       setFly(REST);
-      setMoving(false);
-      movingRef.current = false;
-      setLogoOpacity(1);
-      setStageOpacity(1);
-      setFilmOpacity(0);
-      setSkipVisible(false);
       return;
     }
 
-    setMoving(false);
-    movingRef.current = false;
-    setLogoOpacity(0);
-    setStageOpacity(0);
-    setSkipVisible(true);
-
     if (reduced) {
       setFly(REST);
-      setFilmOpacity(0);
-      setFilmScale(1);
+      phaseRef.current = "start";
+      setPhase("start");
       return;
     }
 
     const node = logoRef.current;
     if (node) setFly(measureCenteredFly(node, INTRO.logoStartScale));
-    setFilmScale(INTRO.filmStartScale);
-    setFilmOpacity(1);
+    phaseRef.current = "start";
+    setPhase("start");
   }, [active, reduced, logoRef]);
 
   useEffect(() => {
-    if (!active || reduced || movingRef.current) return;
+    if (!active || reduced) return;
+    if (visual !== "start" && visual !== "logo") return;
     const sync = () => {
-      if (movingRef.current) return;
+      const current = phaseRef.current;
+      if (current !== "start" && current !== "logo") return;
       const node = logoRef.current;
       if (node) setFly(measureCenteredFly(node, INTRO.logoStartScale));
     };
     window.addEventListener("resize", sync);
     return () => window.removeEventListener("resize", sync);
-  }, [active, reduced, logoRef]);
+  }, [active, reduced, visual, logoRef]);
 
   useEffect(() => {
     if (!active) return;
 
     if (reduced) {
       const frame = window.requestAnimationFrame(() => {
-        setLogoOpacity(1);
-        setStageOpacity(1);
+        phaseRef.current = "done";
+        setPhase("done");
       });
       const done = window.setTimeout(onDone, INTRO.reducedMs);
       return () => {
@@ -126,51 +119,79 @@ export function useIntroMotion({
       };
     }
 
-    const fadeLogo = window.setTimeout(() => setLogoOpacity(1), INTRO.logoDelayMs);
-    const hand = window.setTimeout(() => {
-      movingRef.current = true;
-      setMoving(true);
-      setFly(REST);
-      setFilmScale(INTRO.filmEndScale);
-      setFilmOpacity(0);
-      setStageOpacity(1);
-      setSkipVisible(false);
+    const fadeLogo = window.setTimeout(() => {
+      phaseRef.current = "logo";
+      setPhase("logo");
+    }, INTRO.logoDelayMs);
+    const arm = window.setTimeout(() => {
+      phaseRef.current = "arm";
+      setPhase("arm");
     }, INTRO.handoverAtMs);
     const done = window.setTimeout(onDone, INTRO.doneAtMs);
     return () => {
       window.clearTimeout(fadeLogo);
-      window.clearTimeout(hand);
+      window.clearTimeout(arm);
       window.clearTimeout(done);
     };
   }, [active, reduced, onDone]);
 
+  useEffect(() => {
+    if (phase !== "arm") return;
+    const id = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        phaseRef.current = "handover";
+        setPhase("handover");
+        setFly(REST);
+      });
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [phase]);
+
   const skip = () => {
-    movingRef.current = true;
-    setMoving(false);
+    phaseRef.current = "idle";
+    setPhase("idle");
     setFly(REST);
-    setLogoOpacity(1);
-    setStageOpacity(1);
-    setFilmOpacity(0);
-    setSkipVisible(false);
     onDone();
   };
 
-  const fadeMs = reduced ? INTRO.reducedMs : moving ? INTRO.handoverMs : INTRO.logoFadeMs;
+  const moving = visual === "arm" || visual === "handover";
+  const fadingLogo = visual === "start" || visual === "logo";
+  const reducedFade = reduced && (visual === "start" || visual === "done");
+  const showFilm = visual === "start" || visual === "logo" || visual === "arm" || visual === "handover";
+  const logoOn = visual === "logo" || visual === "arm" || visual === "handover" || visual === "done" || visual === "idle";
+  const stageOn = visual === "handover" || visual === "done" || visual === "idle";
+  const filmOn = visual === "start" || visual === "logo" || visual === "arm";
+  const filmScale =
+    visual === "handover" || visual === "done" || visual === "idle" ? INTRO.filmEndScale : INTRO.filmStartScale;
+  const skipVisible = visual === "start" || visual === "logo" || visual === "arm";
 
   const logoStyle: CSSProperties = {
-    opacity: logoOpacity,
+    opacity: logoOn ? 1 : 0,
     transform: `translate(${fly.x}px, ${fly.y}px) scale(${fly.scale})`,
     transformOrigin: "center center",
-    transition: moving ? `transform ${INTRO.handoverMs}ms ${EASE}` : `opacity ${fadeMs}ms ease`,
+    transition: moving
+      ? `transform ${INTRO.handoverMs}ms ${EASE}, opacity ${INTRO.logoFadeMs}ms ease`
+      : fadingLogo || reducedFade
+        ? `opacity ${reduced ? INTRO.reducedMs : INTRO.logoFadeMs}ms ease`
+        : undefined,
     willChange: active ? "transform, opacity" : undefined,
   };
 
   const stageStyle: CSSProperties = {
-    opacity: stageOpacity,
-    transition: active ? `opacity ${reduced ? INTRO.reducedMs : INTRO.handoverMs}ms ease` : undefined,
+    opacity: stageOn ? 1 : 0,
+    transition: moving || reducedFade ? `opacity ${reduced ? INTRO.reducedMs : INTRO.handoverMs}ms ease` : undefined,
   };
 
-  return { logoStyle, stageStyle, filmOpacity, filmScale, moving, skip, skipVisible };
+  return {
+    logoStyle,
+    stageStyle,
+    filmOpacity: filmOn ? 1 : 0,
+    filmScale,
+    moving,
+    skip,
+    skipVisible,
+    showFilm,
+  };
 }
 
 /** The plant film. Uniform scale only; object-fit contain, never stretched. */
