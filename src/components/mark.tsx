@@ -16,7 +16,7 @@ export function LogoOnDark({ className }: { className?: string }) {
     <img
       src="/leadkeep-logo-white.png"
       alt="LeadKeep"
-      className={cn("h-auto w-36 object-contain", className)}
+      className={cn("h-auto w-36 aspect-[941/244] object-contain", className)}
     />
   );
 }
