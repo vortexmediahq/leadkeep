@@ -16,11 +16,13 @@ if (!url || !anonKey) {
   throw new Error("Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.");
 }
 
-export const supabase = createClient(url, anonKey);
+export const supabase = createClient(url, anonKey, {
+  auth: { experimental: { passkey: true } },
+});
 
 export function createUserClient(accessToken: string) {
   return createClient(url!, anonKey!, {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
+    auth: { persistSession: false, autoRefreshToken: false, experimental: { passkey: true } },
   });
 }

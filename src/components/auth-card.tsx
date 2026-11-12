@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AuthShell } from "@/components/auth-shell";
 
@@ -14,6 +15,15 @@ export function AuthCard({ title, lead, children, footer }: { title: string; lea
         <div className="mt-5">{children}</div>
       </div>
       {footer ? <div className="mt-4 w-full text-center text-sm text-white/70">{footer}</div> : null}
+      <p className="mt-3 w-full text-center text-xs text-white/50">
+        <Link to="/privacy" className="hover:text-white/80">
+          Privacy Policy
+        </Link>
+        {" · "}
+        <Link to="/terms" className="hover:text-white/80">
+          Terms
+        </Link>
+      </p>
     </AuthShell>
   );
 }

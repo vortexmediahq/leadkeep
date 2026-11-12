@@ -15,12 +15,14 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LinksRouteImport } from './routes/links'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as QuestionsRouteImport } from './routes/questions'
 import { Route as QuoteStyleRouteImport } from './routes/quote-style'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as LLinkIdRouteImport } from './routes/l.$linkId'
 import { Route as LeadsLeadIdRouteImport } from './routes/leads.$leadId'
 
@@ -54,6 +56,11 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuestionsRoute = QuestionsRouteImport.update({
   id: '/questions',
   path: '/questions',
@@ -84,6 +91,11 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LLinkIdRoute = LLinkIdRouteImport.update({
   id: '/l/$linkId',
   path: '/l/$linkId',
@@ -102,12 +114,14 @@ export interface FileRoutesByFullPath {
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/questions': typeof QuestionsRoute
   '/quote-style': typeof QuoteStyleRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
 }
@@ -118,12 +132,14 @@ export interface FileRoutesByTo {
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/questions': typeof QuestionsRoute
   '/quote-style': typeof QuoteStyleRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
 }
@@ -135,12 +151,14 @@ export interface FileRoutesById {
   '/links': typeof LinksRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/questions': typeof QuestionsRoute
   '/quote-style': typeof QuoteStyleRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
 }
@@ -153,12 +171,14 @@ export interface FileRouteTypes {
     | '/links'
     | '/login'
     | '/pricing'
+    | '/privacy'
     | '/questions'
     | '/quote-style'
     | '/reset-password'
     | '/services'
     | '/settings'
     | '/signup'
+    | '/terms'
     | '/l/$linkId'
     | '/leads/$leadId'
   fileRoutesByTo: FileRoutesByTo
@@ -169,12 +189,14 @@ export interface FileRouteTypes {
     | '/links'
     | '/login'
     | '/pricing'
+    | '/privacy'
     | '/questions'
     | '/quote-style'
     | '/reset-password'
     | '/services'
     | '/settings'
     | '/signup'
+    | '/terms'
     | '/l/$linkId'
     | '/leads/$leadId'
   id:
@@ -185,12 +207,14 @@ export interface FileRouteTypes {
     | '/links'
     | '/login'
     | '/pricing'
+    | '/privacy'
     | '/questions'
     | '/quote-style'
     | '/reset-password'
     | '/services'
     | '/settings'
     | '/signup'
+    | '/terms'
     | '/l/$linkId'
     | '/leads/$leadId'
   fileRoutesById: FileRoutesById
@@ -202,12 +226,14 @@ export interface RootRouteChildren {
   LinksRoute: typeof LinksRoute
   LoginRoute: typeof LoginRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
   QuestionsRoute: typeof QuestionsRoute
   QuoteStyleRoute: typeof QuoteStyleRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
+  TermsRoute: typeof TermsRoute
   LLinkIdRoute: typeof LLinkIdRoute
   LeadsLeadIdRoute: typeof LeadsLeadIdRoute
 }
@@ -256,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/questions': {
       id: '/questions'
       path: '/questions'
@@ -298,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/l/$linkId': {
       id: '/l/$linkId'
       path: '/l/$linkId'
@@ -322,12 +362,14 @@ const rootRouteChildren: RootRouteChildren = {
   LinksRoute: LinksRoute,
   LoginRoute: LoginRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
   QuestionsRoute: QuestionsRoute,
   QuoteStyleRoute: QuoteStyleRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
+  TermsRoute: TermsRoute,
   LLinkIdRoute: LLinkIdRoute,
   LeadsLeadIdRoute: LeadsLeadIdRoute,
 }

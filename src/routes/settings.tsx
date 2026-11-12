@@ -9,6 +9,9 @@ import { useAccess } from "@/lib/use-access";
 import { useAlerts } from "@/lib/alert-store";
 import { useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
+import { SettingsBranding } from "@/components/settings-branding";
+import { SettingsPrivacy } from "@/components/settings-privacy";
+import { SettingsSecurity } from "@/components/settings-security";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/settings")({
@@ -132,6 +135,10 @@ function Settings() {
         </p>
       </section>
 
+      <SettingsBranding />
+
+      <SettingsSecurity />
+
       <section className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
         <h2 className="text-lg font-semibold tracking-tight">Follow-up reminders</h2>
         <p className="mt-1 text-sm text-muted">
@@ -146,6 +153,8 @@ function Settings() {
           <Link to="/feedback">Send feedback</Link>
         </Button>
       </section>
+
+      <SettingsPrivacy />
     </div>
   );
 }

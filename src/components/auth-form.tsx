@@ -2,9 +2,10 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { AUTH_PANEL } from "@/components/auth-card";
 import { AuthShell } from "@/components/auth-shell";
+import { MfaChallenge } from "@/components/mfa-challenge";
 import { Button } from "@/components/ui/button";
 import { Field, PasswordInput, TextInput } from "@/components/ui/fields";
-import { signIn, signUp, startSessionListener, useSession } from "@/lib/session";
+import { passkeysSupported, signIn, signInWithPasskey, signUp, startSessionListener, useSession } from "@/lib/session";
 
 const COPY = {
   login: {
@@ -35,6 +36,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
   const [pending, setPending] = useState(false);
+  const [passkeyPending, setPasskeyPending] = useState(false);
 
   useEffect(() => {
     startSessionListener();
@@ -64,6 +66,21 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     }
   };
 
+  const onPasskey = async () => {
+    setPasskeyPending(true);
+    setErrors({});
+    try {
+      await signInWithPasskey();
+      await navigate({ to: "/" });
+    } catch (error) {
+      setErrors({ form: error instanceof Error ? error.message : "Something went wrong. Try again." });
+    } finally {
+      setPasskeyPending(false);
+    }
+  };
+
+  if (status === "needs-mfa") return <MfaChallenge />;
+
   return (
     <AuthShell>
       <form
@@ -78,7 +95,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             <TextInput
               id="auth-email"
               type="email"
-              autoComplete="email"
+              autoComplete={mode === "login" ? "username webauthn" : "email"}
               inputMode="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -113,12 +130,26 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           <Button type="submit" variant="accent" className="w-full" disabled={pending}>
             {pending ? copy.pending : copy.submit}
           </Button>
+          {mode === "login" && passkeysSupported() ? (
+            <Button type="button" variant="secondary" className="w-full border-white/20 bg-transparent text-white hover:bg-white/10" disabled={passkeyPending} onClick={() => void onPasskey()}>
+              {passkeyPending ? "Waiting for your device…" : "Log in with fingerprint or face"}
+            </Button>
+          ) : null}
         </div>
       </form>
       <p className="mt-4 w-full text-center text-sm text-white/70">
         {copy.switchText}{" "}
         <Link to={copy.switchTo} className="font-medium text-accent hover:underline">
           {copy.switchLabel}
+        </Link>
+      </p>
+      <p className="mt-3 w-full text-center text-xs text-white/50">
+        <Link to="/privacy" className="hover:text-white/80">
+          Privacy Policy
+        </Link>
+        {" · "}
+        <Link to="/terms" className="hover:text-white/80">
+          Terms
         </Link>
       </p>
     </AuthShell>
