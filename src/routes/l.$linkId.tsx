@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { BrandMark } from "@/components/brand-mark";
+import { BrandTheme } from "@/components/brand-theme";
 import { Mark } from "@/components/mark";
 import { PoweredBy } from "@/components/powered-by";
 import { Button } from "@/components/ui/button";
+import { hasBranding } from "@/lib/branding";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/fields";
 import { fetchPublicForm, submitLeadViaLink, type PublicForm } from "@/lib/data";
 import { DEFAULT_PUBLIC_QUESTIONNAIRE, summarise } from "@/lib/question-templates";
@@ -147,13 +150,28 @@ function Capture({ slug, form, onAnother }: { slug: string; form: PublicForm; on
     }
   };
 
+  const branding = form.branding;
+  const branded = Boolean(branding && hasBranding(branding));
+  const wrap = (node: ReactNode) =>
+    branding ? (
+      <BrandTheme branding={branding} className="min-h-screen">
+        {node}
+      </BrandTheme>
+    ) : (
+      node
+    );
+
   if (done) {
-    return (
+    return wrap(
       <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-10">
         <div className="rounded-3xl border border-line bg-paper p-6 shadow-panel">
-          <span className="grid size-12 place-items-center rounded-full bg-accent-soft text-accent-strong">
-            <Check className="size-6" aria-hidden="true" />
-          </span>
+          {branded && branding?.logoPath ? (
+            <BrandMark path={branding.logoPath} name={business.name} heightClass="h-12" className="mb-4" />
+          ) : (
+            <span className="grid size-12 place-items-center rounded-full bg-accent-soft text-accent-strong">
+              <Check className="size-6" aria-hidden="true" />
+            </span>
+          )}
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">Thanks, we've got it</h1>
           <p className="mt-2 text-base text-ink-soft">
             Thanks {firstName(done)}. {business.name || "The business"} has your details and will be in touch soon.
@@ -162,18 +180,23 @@ function Capture({ slug, form, onAnother }: { slug: string; form: PublicForm; on
             Send another response
           </Button>
         </div>
-        <PoweredBy className="mt-6" />
+        <PoweredBy compact={branded} className="mt-6" />
       </main>
     );
   }
 
-  return (
+  return wrap(
     <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col px-4 py-6 sm:py-10">
       <header className="mb-6 flex items-center gap-3">
-        <Mark />
+        {branded && branding?.logoPath ? (
+          <BrandMark path={branding.logoPath} name={business.name} heightClass="h-12" />
+        ) : (
+          <Mark />
+        )}
         <div className="min-w-0">
           <p className="truncate text-lg font-semibold tracking-tight">{business.name || "Get in touch"}</p>
           {tradeLine ? <p className="truncate text-sm text-muted">{tradeLine}</p> : null}
+          {branded && branding?.logoPath ? <PoweredBy compact className="mt-1 text-left" /> : null}
         </div>
       </header>
 
@@ -226,9 +249,11 @@ function Capture({ slug, form, onAnother }: { slug: string; form: PublicForm; on
           </Button>
         </div>
       </form>
-      <a href="https://leadkeep.whop.site" target="_blank" rel="noreferrer" className="mt-6 block">
-        <PoweredBy />
-      </a>
+      {branded && branding?.logoPath ? null : (
+        <a href="https://leadkeep.whop.site" target="_blank" rel="noreferrer" className="mt-6 block">
+          <PoweredBy compact={branded} />
+        </a>
+      )}
     </main>
   );
 }

@@ -3,6 +3,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Check, ChevronLeft, Copy, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { BrandedQuote, brandedQuotePlainText } from "@/components/branded-quote";
 import { ContactButtons } from "@/components/contact-buttons";
 import { StatusBadge } from "@/components/status-badge";
 import { needsFollowUp } from "@/lib/alerts";
@@ -32,6 +33,7 @@ function LeadPage() {
 
 function LeadDetail({ leadId }: { leadId: string }) {
   const businessName = useLeakKeep((state) => state.business.name);
+  const branding = useLeakKeep((state) => state.branding);
   const leads = useGatedLeads();
   const lead = leads.find((item) => item.id === leadId);
   const access = useAccess();
@@ -138,7 +140,8 @@ function LeadDetail({ leadId }: { leadId: string }) {
 
   const onCopy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
+      const payload = branding.showOnQuote ? brandedQuotePlainText(businessName, text) : text;
+      await navigator.clipboard.writeText(payload);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -359,6 +362,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
             readOnly={pending}
             placeholder="Your quote will land here, built from these answers, your prices and your quote style."
           />
+          <BrandedQuote businessName={businessName} branding={branding} text={text} />
           <Button
             className="mt-3 w-full"
             variant={text.trim() && !pending ? "primary" : "secondary"}

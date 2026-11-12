@@ -2,6 +2,7 @@ import { toEntitlements, type Entitlements } from "@/lib/entitlements";
 import { toAllowance, type Allowance } from "@/lib/plan";
 import { supabase } from "@/lib/supabase";
 import { parseQuestions } from "@/lib/question-templates";
+import { blankBranding, logoUrl, parseFont, parseHexColor, type Branding } from "@/lib/branding";
 import type { Business, Lead, LeadInput, LeadLink, LeadResponse, LeadStatus, Question, Questionnaire, QuoteTemplate, Service } from "@/lib/types";
 
 type ServiceRow = { id: string; name: string; description: string; price: string; notes: string };
@@ -164,13 +165,27 @@ export type PublicForm = {
   business: { name: string; trade: string; city: string };
   services: string[];
   questionnaire: { name: string; intro: string; questions: Question[] } | null;
+  branding: Branding | null;
 };
+
+function toPublicBranding(value: unknown): Branding | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  return {
+    logoPath: text(row.logo_path),
+    primaryColor: parseHexColor(row.primary_color),
+    accentColor: parseHexColor(row.accent_color),
+    font: parseFont(row.font),
+    showOnQuote: true,
+    showOnForm: true,
+  };
+}
 
 export async function fetchPublicForm(slug: string): Promise<PublicForm | null> {
   const { data, error } = await supabase.rpc("public_lead_form", { p_slug: slug });
   if (error) fail("load this form", error);
   if (!data || typeof data !== "object") return null;
-  const form = data as { source?: unknown; business?: Record<string, unknown>; services?: unknown; questionnaire?: unknown };
+  const form = data as { source?: unknown; business?: Record<string, unknown>; services?: unknown; questionnaire?: unknown; branding?: unknown };
   const business = form.business ?? {};
   const raw = form.questionnaire && typeof form.questionnaire === "object" ? (form.questionnaire as Record<string, unknown>) : null;
   const questions = raw ? parseQuestions(raw.questions) : [];
@@ -179,6 +194,7 @@ export async function fetchPublicForm(slug: string): Promise<PublicForm | null> 
     source: text(form.source),
     business: { name: text(business.name), trade: text(business.trade), city: text(business.city) },
     services: Array.isArray(form.services) ? form.services.filter((name): name is string => typeof name === "string") : [],
+    branding: toPublicBranding(form.branding),
   };
 }
 
@@ -229,21 +245,93 @@ export function subscribeToNewLeads(userId: string, onLead: (id: string) => void
 }
 
 type ProfileRow = { name: string; trade: string; city: string; phone: string; email: string; currency: string };
+type BrandingRow = {
+  logo_path: string;
+  primary_color: string;
+  accent_color: string;
+  font: string;
+  show_on_quote: boolean;
+  show_on_form: boolean;
+};
 
-export async function fetchProfile(): Promise<Business | null> {
-  const { data, error } = await supabase
-    .from("business_profiles")
-    .select("name, trade, city, phone, email, currency")
-    .maybeSingle();
-  if (error) fail("load your business details", error);
-  return data ? (data as ProfileRow) : null;
+export type StoredProfile = { business: Business; branding: Branding };
+
+const PROFILE_COLUMNS = "name, trade, city, phone, email, currency";
+const BRANDING_COLUMNS = "logo_path, primary_color, accent_color, font, show_on_quote, show_on_form";
+
+function toBranding(row: Partial<BrandingRow> | null | undefined): Branding {
+  if (!row) return { ...blankBranding };
+  return {
+    logoPath: text(row.logo_path),
+    primaryColor: parseHexColor(row.primary_color),
+    accentColor: parseHexColor(row.accent_color),
+    font: parseFont(row.font),
+    showOnQuote: row.show_on_quote !== false,
+    showOnForm: row.show_on_form !== false,
+  };
 }
 
-export async function saveProfile(business: Business) {
-  const { error } = await supabase
-    .from("business_profiles")
-    .upsert({ ...business, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+function brandingColumns(branding: Branding) {
+  return {
+    logo_path: branding.logoPath.slice(0, 300),
+    primary_color: branding.primaryColor,
+    accent_color: branding.accentColor,
+    font: branding.font,
+    show_on_quote: branding.showOnQuote,
+    show_on_form: branding.showOnForm,
+  };
+}
+
+export function publicLogoUrl(logoPath: string) {
+  const env = (import.meta as unknown as { env: Record<string, string | undefined> }).env;
+  return logoUrl(logoPath, env.VITE_SUPABASE_URL ?? "");
+}
+
+export async function fetchProfile(): Promise<StoredProfile | null> {
+  const full = await supabase.from("business_profiles").select(`${PROFILE_COLUMNS}, ${BRANDING_COLUMNS}`).maybeSingle();
+  if (!full.error) {
+    if (!full.data) return null;
+    const row = full.data as ProfileRow & BrandingRow;
+    const { name, trade, city, phone, email, currency, ...brand } = row;
+    return { business: { name, trade, city, phone, email, currency }, branding: toBranding(brand) };
+  }
+  const { data, error } = await supabase.from("business_profiles").select(PROFILE_COLUMNS).maybeSingle();
+  if (error) fail("load your business details", error);
+  return data ? { business: data as ProfileRow, branding: { ...blankBranding } } : null;
+}
+
+export async function saveProfile(business: Business, branding?: Branding) {
+  const base = { ...business, updated_at: new Date().toISOString() };
+  if (branding) {
+    const { error } = await supabase
+      .from("business_profiles")
+      .upsert({ ...base, ...brandingColumns(branding) }, { onConflict: "user_id" });
+    if (!error) return;
+  }
+  const { error } = await supabase.from("business_profiles").upsert(base, { onConflict: "user_id" });
   if (error) fail("save your business details", error);
+}
+
+const LOGO_TYPES: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/svg+xml": "svg",
+};
+
+export async function uploadLogo(userId: string, file: File): Promise<string> {
+  const ext = LOGO_TYPES[file.type];
+  if (!ext) throw new Error("Please use a PNG, JPG, WEBP or SVG image.");
+  if (file.size > 2 * 1024 * 1024) throw new Error("Please keep the logo under 2 MB.");
+  const path = `${userId}/logo.${ext}`;
+  const { error } = await supabase.storage.from("brand-assets").upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw new Error("We couldn't upload that logo. Try a different image.");
+  return path;
+}
+
+export async function removeLogo(logoPath: string) {
+  if (!logoPath.trim()) return;
+  await supabase.storage.from("brand-assets").remove([logoPath]);
 }
 
 type LinkRow = { id: string; slug: string; source: string; created_at: string; questionnaire_id?: string | null };

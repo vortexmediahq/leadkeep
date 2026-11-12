@@ -19,8 +19,10 @@ import {
   questionnairesAvailable,
   updateLinkQuestionnaire,
   insertServices,
+  removeLogo,
   saveProfile,
   saveTemplate,
+  uploadLogo,
   subscribeToNewLeads,
   updateLeadRow,
   updateLinkSource,
@@ -29,6 +31,7 @@ import {
 } from "@/lib/data";
 import { NO_LIMITS, type Entitlements } from "@/lib/entitlements";
 import type { Allowance } from "@/lib/plan";
+import { blankBranding, type Branding } from "@/lib/branding";
 import { blankBusiness, seedTemplate, starterLinkSources, starterServices } from "@/lib/seed";
 import type { Business, Lead, LeadLink, LeadStatus, Questionnaire, QuoteTemplate, Service } from "@/lib/types";
 import { duplicateQuestionnaire, newId } from "@/lib/question-templates";
@@ -40,6 +43,7 @@ const LEGACY_KEY = "leakkeep.v1";
 
 type LeakState = {
   business: Business;
+  branding: Branding;
   services: Service[];
   links: LeadLink[];
   questionnaires: Questionnaire[];
@@ -62,6 +66,9 @@ type LeakState = {
   setAllowance: (allowance: Allowance) => void;
   refreshPlan: () => Promise<void>;
   updateBusiness: (patch: Partial<Business>) => void;
+  updateBranding: (patch: Partial<Branding>) => void;
+  setLogo: (file: File, userId: string) => Promise<void>;
+  clearLogo: () => Promise<void>;
   updateTemplate: (patch: Partial<QuoteTemplate>) => void;
   addService: () => void;
   updateService: (id: string, patch: Partial<Omit<Service, "id">>) => void;
@@ -145,6 +152,7 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
 
   return {
     business: blankBusiness,
+    branding: blankBranding,
     services: [],
     links: [],
     questionnaires: [],
@@ -181,8 +189,8 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
         }
         if (!profile) {
           const legacy = readLegacy();
-          profile = { ...blankBusiness, ...legacy.business };
-          await saveProfile(profile);
+          profile = { business: { ...blankBusiness, ...legacy.business }, branding: { ...blankBranding } };
+          await saveProfile(profile.business, profile.branding);
           if (links.length === 0) {
             links = await insertLinks(legacy.sources.length ? legacy.sources : starterLinkSources);
           }
@@ -195,7 +203,8 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
           links,
           questionnaires,
           questionnairesReady,
-          business: profile,
+          business: profile.business,
+          branding: profile.branding,
           template: template ?? blank,
           allowance,
           entitlements: entitlements ?? NO_LIMITS,
@@ -243,6 +252,7 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
       unsubscribe = null;
       set({
         business: blankBusiness,
+        branding: blankBranding,
         services: [],
         links: [],
         questionnaires: [],
@@ -275,7 +285,24 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
     },
     updateBusiness: (patch) => {
       set((state) => ({ business: { ...state.business, ...patch } }));
-      later("business", () => saveProfile(get().business));
+      later("business", () => saveProfile(get().business, get().branding));
+    },
+    updateBranding: (patch) => {
+      set((state) => ({ branding: { ...state.branding, ...patch } }));
+      later("business", () => saveProfile(get().business, get().branding));
+    },
+    setLogo: async (file, userId) => {
+      const path = await uploadLogo(userId, file);
+      const previous = get().branding.logoPath;
+      set((state) => ({ branding: { ...state.branding, logoPath: path } }));
+      await saveProfile(get().business, get().branding);
+      if (previous && previous !== path) await removeLogo(previous).catch(() => undefined);
+    },
+    clearLogo: async () => {
+      const previous = get().branding.logoPath;
+      set((state) => ({ branding: { ...state.branding, logoPath: "" } }));
+      await saveProfile(get().business, get().branding);
+      if (previous) await removeLogo(previous).catch(() => undefined);
     },
     updateTemplate: (patch) => {
       set((state) => ({ template: { ...state.template, ...patch } }));
