@@ -3,3 +3,16 @@ verify_jwt = true
 
 [functions.paystack-webhook]
 verify_jwt = false
+
+[functions.send-quote]
+verify_jwt = true
+
+[functions.whop-webhook]
+verify_jwt = false
+
+# Called by database triggers (no user token). They read the real record themselves before sending anything.
+[functions.new-lead-alert]
+verify_jwt = false
+
+[functions.unusual-login-alert]
+verify_jwt = false

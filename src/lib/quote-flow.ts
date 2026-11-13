@@ -113,3 +113,21 @@ export function quotePath(token: string): string {
 export function quoteExpiry(days: number, from: Date = new Date()): string {
   return new Date(from.getTime() + Math.max(1, Math.min(90, days)) * 86_400_000).toISOString();
 }
+
+/** Starter wording older accounts still have saved in Quote style. It is a hint for the owner, never text for a customer. */
+export const PLACEHOLDER_STYLE_HINTS = [
+  "Tell customers about any guarantee, refund or cancellation terms here.",
+  "Close with the business name and one line: we will confirm the details by phone.",
+];
+
+const norm = (text: string) => text.trim().replace(/\s+/g, " ").toLowerCase();
+
+export function isPlaceholderStyle(text: string): boolean {
+  const value = norm(text);
+  return PLACEHOLDER_STYLE_HINTS.some((hint) => norm(hint) === value);
+}
+
+/** The owner's own wording for a style field, or "" when it is empty or still the starter hint. */
+export function styleInstruction(text: string): string {
+  return !text.trim() || isPlaceholderStyle(text) ? "" : text.trim();
+}

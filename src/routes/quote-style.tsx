@@ -52,16 +52,18 @@ function QuoteStyle() {
             onChange={(event) => updateTemplate({ paymentTerms: event.target.value })}
           />
         </Field>
-        <Field id="warranty" label="Warranty language">
+        <Field id="warranty" label="Warranty language" hint="Optional. Leave blank to leave it out of quotes.">
           <TextArea
             id="warranty"
+            placeholder="e.g. All work is guaranteed for 12 months. Refunds within 7 days if you cancel before we start."
             value={template.warranty}
             onChange={(event) => updateTemplate({ warranty: event.target.value })}
           />
         </Field>
-        <Field id="extra" label="Closing and anything else">
+        <Field id="extra" label="Closing and anything else" hint="Optional. Leave blank to leave it out of quotes.">
           <TextArea
             id="extra"
+            placeholder="e.g. Thanks for choosing us. We will confirm the details by phone."
             value={template.extra}
             onChange={(event) => updateTemplate({ extra: event.target.value })}
           />

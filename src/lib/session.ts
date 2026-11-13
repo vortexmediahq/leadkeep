@@ -55,7 +55,11 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signUp(email: string, password: string) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+  });
   if (error) throw new Error(friendlyAuthError(error.message));
   if (!data.session) throw new Error("Account created. Log in to continue.");
 }

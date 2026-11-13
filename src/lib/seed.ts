@@ -32,7 +32,7 @@ export const seedTemplate: QuoteTemplate = {
     "One-line summary of what they asked for\nWhat we will do or supply\nPrice, and what would change it\nWhat is included and what is not\nWhen we can start\nHow to accept",
   paymentTerms:
     "50% to book, balance on completion. Card or EFT.",
-  warranty:
-    "Tell customers about any guarantee, refund or cancellation terms here.",
-  extra: "Close with the business name and one line: we will confirm the details by phone.",
+  // Left empty on purpose: the Quote style page shows example wording as a hint, never as saved text.
+  warranty: "",
+  extra: "",
 };
