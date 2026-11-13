@@ -57,3 +57,12 @@ test("tokens are long and expiry is limited to 1-90 days", () => {
   assert.equal(parseQuoteStyle("neon"), "clean");
   assert.equal(parseQuoteStyle("bold"), "bold");
 });
+
+import { isPlaceholderStyle, styleInstruction } from "./quote-flow.ts";
+test("starter hints are never treated as the owner's wording", () => {
+  assert.equal(isPlaceholderStyle("Tell customers about any guarantee, refund or cancellation terms here."), true);
+  assert.equal(isPlaceholderStyle("  close with the business name and one line: we will confirm the details by phone. "), true);
+  assert.equal(styleInstruction("Tell customers about any guarantee, refund or cancellation terms here."), "");
+  assert.equal(styleInstruction(""), "");
+  assert.equal(styleInstruction(" 12 month guarantee "), "12 month guarantee");
+});
