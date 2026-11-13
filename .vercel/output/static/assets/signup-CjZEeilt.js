@@ -1,1 +1,0 @@
-import{s as e}from"./link-CbLTYCOY.js";import{t}from"./auth-form-Du2CPzMN.js";var n=e(),r=()=>(0,n.jsx)(t,{mode:`signup`});export{r as component};

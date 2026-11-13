@@ -1,1 +1,0 @@
-var e=[{id:`new`,label:`New`},{id:`contacted`,label:`Contacted`},{id:`quoted`,label:`Quoted`},{id:`won`,label:`Won`},{id:`lost`,label:`Lost`}],t=[{id:`short`,label:`Short answer`},{id:`long`,label:`Paragraph`},{id:`choice`,label:`Pick one`},{id:`multi`,label:`Pick any`},{id:`date`,label:`Date`},{id:`number`,label:`Number`}];export{e as n,t};
