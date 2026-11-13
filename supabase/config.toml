@@ -3,3 +3,15 @@ verify_jwt = true
 
 [functions.paystack-webhook]
 verify_jwt = false
+
+[functions.whop-webhook]
+verify_jwt = false
+
+[functions.new-lead-alert]
+verify_jwt = true
+
+[functions.unusual-login-alert]
+verify_jwt = true
+
+[functions.send-quote]
+verify_jwt = true
