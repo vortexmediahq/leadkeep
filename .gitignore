@@ -3,3 +3,6 @@ node_modules/
 .github_repo
 .env
 .env.*
+
+# Vercel builds this itself; a committed copy makes Vercel serve an old version
+.vercel/output
