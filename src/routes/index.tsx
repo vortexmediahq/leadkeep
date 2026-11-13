@@ -5,7 +5,8 @@ import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { SetupRing } from "@/components/setup-ring";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/status-badge";
+import { LeadBadge } from "@/components/status-badge";
+import { quoteReminder } from "@/lib/quote-flow";
 import { TextInput } from "@/components/ui/fields";
 import { needsFollowUp } from "@/lib/alerts";
 import { LOCKED_PLACEHOLDER, leadsToCsv, lockedCount } from "@/lib/entitlements";
@@ -172,12 +173,12 @@ function Dashboard() {
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
-                    {needsFollowUp(lead) ? (
+                    {needsFollowUp(lead) || quoteReminder(lead) ? (
                       <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent-strong">
                         Follow up
                       </span>
                     ) : null}
-                    <StatusBadge status={lead.status} />
+                    <LeadBadge lead={lead} />
                   </span>
                 </span>
                 {lead.locked ? (

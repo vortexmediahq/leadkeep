@@ -1,12 +1,18 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Inbox, Link2, ListChecks, LogOut, MessageSquareHeart, ScrollText, Settings, Wrench, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { BrandTheme } from "@/components/brand-theme";
 import { ClientGate } from "@/components/client-gate";
 import { Logo } from "@/components/mark";
 import { PoweredBy } from "@/components/powered-by";
 import { NotificationBell } from "@/components/notification-bell";
-import { PlanCard, PlanPill, TesterReminder } from "@/components/plan-card";
+import { UnusualActivityBanner } from "@/components/unusual-activity";
+import { PlanCard, PlanPill, PlansButton, TesterReminder } from "@/components/plan-card";
 import { signOut, useSession } from "@/lib/session";
+import { BrandMark } from "@/components/brand-mark";
+import { hasBranding } from "@/lib/branding";
+import { plansButton } from "@/lib/entitlements";
+import { useEffectiveBranding } from "@/lib/use-access";
 import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -138,17 +144,24 @@ function IncomingLead() {
 function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const business = useLeakKeep((state) => state.business);
+  const branding = useEffectiveBranding();
+  const branded = hasBranding(branding);
+  const entitlements = useLeakKeep((state) => state.entitlements);
   const fresh = useLeakKeep((state) => state.leads.filter((lead) => lead.status === "new").length);
   const saveError = useLeakKeep((state) => state.saveError);
   const email = useSession((state) => state.user?.email ?? "");
   const clearSaveError = useLeakKeep((state) => state.clearSaveError);
 
   return (
-    <div className="min-h-screen bg-mist md:flex">
+    <BrandTheme branding={branding} className="min-h-screen bg-mist md:flex">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-paper md:flex">
         <div className="px-4 py-5">
           <div className="flex items-center justify-between gap-2">
-            <Logo className="w-36" />
+            {branding.logoPath ? (
+              <BrandMark path={branding.logoPath} name={business.name} heightClass="h-10" className="min-w-0 flex-1" />
+            ) : (
+              <Logo className="w-36" />
+            )}
             <NotificationBell />
           </div>
           <p className="mt-1 text-sm text-muted">Lead inbox</p>
@@ -196,18 +209,29 @@ function Shell({ children }: { children: ReactNode }) {
           <div className="mt-3">
             <LogoutButton />
           </div>
-          <PoweredBy className="mt-3" />
+          <PoweredBy compact={branded} className="mt-3" />
         </div>
       </aside>
 
       <div className="min-w-0 flex-1">
+        {plansButton(entitlements).show ? (
+          <div className="sticky top-0 z-10 hidden items-center justify-end border-b border-line bg-paper/95 px-8 py-1.5 backdrop-blur md:flex">
+            <PlansButton />
+          </div>
+        ) : null}
         <header className="sticky top-0 z-10 border-b border-line bg-paper px-4 py-3 md:hidden">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
-              <Logo className="h-7 w-auto" />
+              {branding.logoPath ? (
+                <BrandMark path={branding.logoPath} name={business.name} heightClass="h-7" />
+              ) : (
+                <Logo className="h-7 w-auto" />
+              )}
               <p className="truncate text-sm text-muted">{business.name || email}</p>
             </div>
             <PlanPill />
+            {/* Free accounts already have the plans pill above; paying accounts get a short "My plan" link. */}
+            {entitlements.tier !== "free" ? <PlansButton compact /> : null}
             <NotificationBell />
             <Link
               to="/settings"
@@ -231,9 +255,19 @@ function Shell({ children }: { children: ReactNode }) {
               </button>
             </div>
           ) : null}
+          <UnusualActivityBanner />
           <TesterReminder />
           {children}
-          <PoweredBy className="mx-auto mt-10 max-w-3xl md:mt-12" />
+          <PoweredBy compact={branded} className="mx-auto mt-10 max-w-3xl md:mt-12" />
+          <p className="mx-auto mt-3 max-w-3xl text-center text-xs text-faint">
+            <Link to="/privacy" className="hover:text-muted">
+              Privacy Policy
+            </Link>
+            {" · "}
+            <Link to="/terms" className="hover:text-muted">
+              Terms
+            </Link>
+          </p>
         </main>
       </div>
 
@@ -255,7 +289,7 @@ function Shell({ children }: { children: ReactNode }) {
           ))}
         </div>
       </nav>
-    </div>
+    </BrandTheme>
   );
 }
 

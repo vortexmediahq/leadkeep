@@ -92,3 +92,55 @@
     transform: none;
   }
 }
+
+/* Glass auth panel: orange focus and dark autofill so inputs stay readable on navy. */
+.auth-glass :focus-visible {
+  outline-color: var(--color-accent);
+}
+
+.auth-glass input:-webkit-autofill,
+.auth-glass input:-webkit-autofill:hover,
+.auth-glass input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  box-shadow: 0 0 0 1000px rgb(11 31 59 / 0.92) inset;
+  transition: background-color 9999s ease-out;
+}
+
+/* Keep the show/hide eye inside the password field, not below it. */
+.password-input {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.password-input > input {
+  display: block;
+  width: 100%;
+  padding-right: 2.75rem;
+}
+
+.password-input > .password-input__toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  transform: translateY(-50%);
+}
+
+.password-input > .password-input__toggle:hover,
+.password-input > .password-input__toggle:focus-visible {
+  background: transparent;
+}
+
+.password-input > .password-input__toggle:active {
+  transform: translateY(-50%) scale(0.98);
+}

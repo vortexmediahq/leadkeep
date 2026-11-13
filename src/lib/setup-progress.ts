@@ -26,6 +26,7 @@ export function setupProgress(input: {
   questionnairesCount: number;
   namedServices: number;
   notificationsChosen: boolean;
+  brandingReady?: boolean;
 }): { steps: SetupStep[]; done: number; total: number; percent: number } {
   const steps: SetupStep[] = [
     {
@@ -74,10 +75,11 @@ export function setupProgress(input: {
     {
       id: "branding",
       label: "Add your logo and colours",
-      done: false,
+      done: Boolean(input.brandingReady),
       to: "/settings",
+      hash: "branding",
       counted: false,
-      note: "Coming in the next update.",
+      note: input.brandingReady ? undefined : "Optional. Makes your forms and quotes look like you.",
     },
   ];
   const countable = steps.filter((step) => step.counted);

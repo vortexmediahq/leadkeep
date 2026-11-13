@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
+import { hasBranding } from "@/lib/branding";
 import { NOTIFY_SETUP_KEY, setupProgress } from "@/lib/setup-progress";
 import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ function notificationsChosen(): boolean {
 
 export function SetupRing() {
   const business = useLeakKeep((state) => state.business);
+  const branding = useLeakKeep((state) => state.branding);
   const linksCount = useLeakKeep((state) => state.links.length);
   const questionnairesReady = useLeakKeep((state) => state.questionnairesReady);
   const questionnairesCount = useLeakKeep((state) => state.questionnaires.length);
@@ -30,8 +32,9 @@ export function SetupRing() {
         questionnairesCount,
         namedServices,
         notificationsChosen: chosen,
+        brandingReady: hasBranding(branding),
       }),
-    [business, linksCount, questionnairesReady, questionnairesCount, namedServices, chosen],
+    [business, branding, linksCount, questionnairesReady, questionnairesCount, namedServices, chosen],
   );
 
   const radius = 18;

@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
+import { MfaChallenge } from "@/components/mfa-challenge";
 import { startSessionListener, useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
 
@@ -50,6 +51,8 @@ export function ClientGate({ children, fallback }: { children: ReactNode; fallba
       window.removeEventListener("focus", refresh);
     };
   }, []);
+
+  if (status === "needs-mfa") return <MfaChallenge />;
 
   if (loadError && !loading) {
     return (

@@ -1,9 +1,11 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
+import { AUTH_PANEL } from "@/components/auth-card";
 import { AuthShell } from "@/components/auth-shell";
+import { MfaChallenge } from "@/components/mfa-challenge";
 import { Button } from "@/components/ui/button";
 import { Field, PasswordInput, TextInput } from "@/components/ui/fields";
-import { signIn, signUp, startSessionListener, useSession } from "@/lib/session";
+import { passkeysSupported, signIn, signInWithPasskey, signUp, startSessionListener, useSession } from "@/lib/session";
 
 const COPY = {
   login: {
@@ -34,6 +36,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
   const [pending, setPending] = useState(false);
+  const [passkeyPending, setPasskeyPending] = useState(false);
 
   useEffect(() => {
     startSessionListener();
@@ -63,24 +66,40 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     }
   };
 
+  const onPasskey = async () => {
+    setPasskeyPending(true);
+    setErrors({});
+    try {
+      await signInWithPasskey();
+      await navigate({ to: "/" });
+    } catch (error) {
+      setErrors({ form: error instanceof Error ? error.message : "Something went wrong. Try again." });
+    } finally {
+      setPasskeyPending(false);
+    }
+  };
+
+  if (status === "needs-mfa") return <MfaChallenge />;
+
   return (
     <AuthShell>
       <form
         onSubmit={(event) => void submit(event)}
-        className="rounded-3xl border border-white/10 bg-paper p-4 shadow-panel sm:p-6"
+        className={AUTH_PANEL}
         noValidate
       >
-        <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
-        <p className="mt-1 text-sm text-muted">{copy.lead}</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-white">{copy.title}</h1>
+        <p className="mt-1 text-sm text-[#c5d0de]">{copy.lead}</p>
         <div className="mt-5 flex flex-col gap-4">
-          <Field id="auth-email" label="Email" error={errors.email}>
+          <Field id="auth-email" label="Email" error={errors.email} tone="onDark">
             <TextInput
               id="auth-email"
               type="email"
-              autoComplete="email"
+              autoComplete={mode === "login" ? "username webauthn" : "email"}
               inputMode="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              tone="onDark"
             />
           </Field>
           <Field
@@ -88,33 +107,49 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             label="Password"
             error={errors.password}
             hint={mode === "signup" ? "At least 6 characters." : undefined}
+            tone="onDark"
           >
             <PasswordInput
               id="auth-password"
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              tone="onDark"
             />
           </Field>
           {mode === "login" ? (
-            <Link to="/forgot-password" className="-mt-2 self-end text-sm font-medium text-primary hover:text-accent">
+            <Link to="/forgot-password" className="-mt-2 block w-full text-center text-sm font-medium text-[#c5d0de] hover:text-accent">
               Forgot password?
             </Link>
           ) : null}
           {errors.form ? (
-            <p className="text-sm text-lost" role="alert">
+            <p className="text-sm text-red-300" role="alert">
               {errors.form}
             </p>
           ) : null}
           <Button type="submit" variant="accent" className="w-full" disabled={pending}>
             {pending ? copy.pending : copy.submit}
           </Button>
+          {mode === "login" && passkeysSupported() ? (
+            <Button type="button" variant="secondary" className="w-full border-white/20 bg-transparent text-white hover:bg-white/10" disabled={passkeyPending} onClick={() => void onPasskey()}>
+              {passkeyPending ? "Waiting for your device…" : "Log in with fingerprint or face"}
+            </Button>
+          ) : null}
         </div>
       </form>
-      <p className="mt-4 text-center text-sm text-white/70">
+      <p className="mt-4 w-full text-center text-sm text-white/70">
         {copy.switchText}{" "}
         <Link to={copy.switchTo} className="font-medium text-accent hover:underline">
           {copy.switchLabel}
+        </Link>
+      </p>
+      <p className="mt-3 w-full text-center text-xs text-white/50">
+        <Link to="/privacy" className="hover:text-white/80">
+          Privacy Policy
+        </Link>
+        {" · "}
+        <Link to="/terms" className="hover:text-white/80">
+          Terms
         </Link>
       </p>
     </AuthShell>

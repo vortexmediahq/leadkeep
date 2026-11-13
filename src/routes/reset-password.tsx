@@ -82,28 +82,30 @@ function ResetPassword() {
   return (
     <AuthCard title="Set a new password" lead="Choose a new password for your LeadKeep account.">
       <form onSubmit={(event) => void submit(event)} noValidate className="flex flex-col gap-4">
-        <Field id="new-password" label="New password" error={errors.password} hint="At least 6 characters.">
+        <Field id="new-password" label="New password" error={errors.password} hint="At least 6 characters." tone="onDark">
           <PasswordInput
             id="new-password"
             autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            tone="onDark"
           />
         </Field>
-        <Field id="confirm-password" label="Type it again" error={errors.confirm}>
+        <Field id="confirm-password" label="Type it again" error={errors.confirm} tone="onDark">
           <PasswordInput
             id="confirm-password"
             autoComplete="new-password"
             value={confirm}
             onChange={(event) => setConfirm(event.target.value)}
+            tone="onDark"
           />
         </Field>
         {errors.form ? (
-          <p className="text-sm text-lost" role="alert">
+          <p className="text-sm text-red-300" role="alert">
             {errors.form}
           </p>
         ) : null}
-        <Button type="submit" className="w-full" disabled={pending}>
+        <Button type="submit" variant="accent" className="w-full" disabled={pending}>
           {pending ? "Saving…" : "Save new password"}
         </Button>
       </form>

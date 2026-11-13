@@ -1,34 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 
-/** Timing for the Vowly-style handoff: plant, logo, then a gentle move into log in. */
+/** Timing for the plant-to-login handoff. Video plays full screen first, then the logo, then login. */
 export const INTRO = {
-  logoDelayMs: 350,
-  logoFadeMs: 900,
-  handoverAtMs: 2500,
-  handoverMs: 2000,
-  doneAtMs: 4600,
+  logoDelayMs: 2500,
+  logoFadeMs: 700,
+  handoverAtMs: 3300,
+  handoverMs: 1500,
+  doneAtMs: 4900,
   reducedMs: 900,
-  /** Start a little zoomed out so more of the navy shows around the plant. */
-  filmStartScale: 0.9,
-  /** Ease forward during the handoff. Uniform scale only. */
-  filmEndScale: 1.08,
   /** Logo begins a touch larger, centered over the plant. */
   logoStartScale: 1.28,
 } as const;
-
-export function usePortraitFilm() {
-  const [portrait, setPortrait] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(orientation: portrait) and (max-width: 767px)");
-    const sync = () => setPortrait(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  return portrait;
-}
 
 type Fly = { x: number; y: number; scale: number };
 type Phase = "idle" | "start" | "logo" | "arm" | "handover" | "done";
@@ -43,6 +25,11 @@ function measureCenteredFly(node: HTMLElement, scale: number): Fly {
     y: window.innerHeight / 2 - (rect.top + rect.height / 2),
     scale,
   };
+}
+
+function portraitFilmSrc(): string {
+  const portrait = window.matchMedia("(orientation: portrait) and (max-width: 767px)").matches;
+  return portrait ? "/hero-plant-portrait.mp4" : "/hero-plant.mp4";
 }
 
 /**
@@ -161,13 +148,11 @@ export function useIntroMotion({
   const logoOn = visual === "logo" || visual === "arm" || visual === "handover" || visual === "done" || visual === "idle";
   const stageOn = visual === "handover" || visual === "done" || visual === "idle";
   const filmOn = visual === "start" || visual === "logo" || visual === "arm";
-  const filmScale =
-    visual === "handover" || visual === "done" || visual === "idle" ? INTRO.filmEndScale : INTRO.filmStartScale;
   const skipVisible = visual === "start" || visual === "logo" || visual === "arm";
 
   const logoStyle: CSSProperties = {
     opacity: logoOn ? 1 : 0,
-    transform: `translate(${fly.x}px, ${fly.y}px) scale(${fly.scale})`,
+    transform: `translate3d(${fly.x}px, ${fly.y}px, 0) scale(${fly.scale})`,
     transformOrigin: "center center",
     transition: moving
       ? `transform ${INTRO.handoverMs}ms ${EASE}, opacity ${INTRO.logoFadeMs}ms ease`
@@ -186,7 +171,6 @@ export function useIntroMotion({
     logoStyle,
     stageStyle,
     filmOpacity: filmOn ? 1 : 0,
-    filmScale,
     moving,
     skip,
     skipVisible,
@@ -194,46 +178,44 @@ export function useIntroMotion({
   };
 }
 
-/** The plant film. Uniform scale only; object-fit contain, never stretched. */
-export function IntroFilm({
-  portrait,
-  scale,
-  opacity,
-  moving,
-}: {
-  portrait: boolean;
-  scale: number;
-  opacity: number;
-  moving: boolean;
-}) {
+/**
+ * Full-bleed plant film. The source is locked on mount so the clip plays once
+ * from the start: no loop, no seek, no remount, no mid-play swap.
+ * object-fit: cover only — uniform scale and crop, never stretched.
+ */
+export function IntroFilm({ opacity, moving }: { opacity: number; moving: boolean }) {
   const video = useRef<HTMLVideoElement>(null);
-  const src = portrait ? "/hero-plant-portrait.mp4" : "/hero-plant.mp4";
+  const srcRef = useRef<string | null>(null);
+  if (srcRef.current === null) srcRef.current = portraitFilmSrc();
+  const src = srcRef.current;
 
   useEffect(() => {
     const node = video.current;
     if (!node) return;
     node.muted = true;
+    node.loop = false;
+    node.playsInline = true;
     const play = node.play();
     if (play) void play.catch(() => {});
-  }, [src]);
+  }, []);
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
       style={{
+        width: "100vw",
+        height: "100dvh",
         opacity,
         transition: moving ? `opacity ${INTRO.handoverMs}ms ease` : undefined,
+        transform: "translateZ(0)",
+        willChange: moving ? "opacity" : undefined,
       }}
       aria-hidden="true"
     >
       <video
-        key={src}
         ref={video}
-        className="absolute inset-0 h-full w-full origin-center object-contain"
-        style={{
-          transform: `scale(${scale})`,
-          transition: moving ? `transform ${INTRO.handoverMs}ms ${EASE}` : undefined,
-        }}
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ transform: "translateZ(0)" }}
         autoPlay
         muted
         playsInline

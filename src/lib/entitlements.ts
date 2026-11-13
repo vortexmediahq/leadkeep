@@ -189,3 +189,17 @@ export function leadsToCsv(leads: GatedLead[]): string {
     );
   return `\uFEFF${[header.join(","), ...rows].join("\r\n")}`;
 }
+
+/** The slim top-right plans button: "View plans" on Free (and for testers), "Update my plan" once paying. Hidden for the owner. */
+export function plansButton(e: Entitlements): { show: boolean; paid: boolean; label: string } {
+  if (!e.ready || e.admin) return { show: false, paid: false, label: "" };
+  const paid = e.tier !== "free";
+  return { show: true, paid, label: paid ? "Update my plan" : "View plans" };
+}
+
+/** Banner text on each plan card. */
+export const PLAN_BANNER: Record<Tier, { text: string; tone: "blue" | "orange" }> = {
+  free: { text: "Free", tone: "blue" },
+  care: { text: "Care - Most popular", tone: "orange" },
+  growth: { text: "Growth", tone: "blue" },
+};

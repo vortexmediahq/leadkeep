@@ -38,6 +38,13 @@ function lead(n: number, extra: Partial<Lead> = {}): Lead {
     accessNotes: "",
     responses: [{ question: "Date?", answer: "March" }],
     status: "new",
+    serviceName: "",
+    quoteToken: null,
+    quoteState: "",
+    quoteSentAt: null,
+    quoteViewedAt: null,
+    quoteAcceptedAt: null,
+    quoteExpiresAt: null,
     createdAt: new Date(Date.UTC(2026, 10, 1, 8, n)).toISOString(),
     quote: "Quote text",
     quoteUpdatedAt: null,
@@ -158,4 +165,18 @@ test("CSV export skips hidden leads, quotes commas and blocks spreadsheet formul
   assert.ok(rows[1].includes('"Smith, ""Jo"""'));
   assert.ok(rows[2].includes("'=HYPERLINK(1)"));
   assert.ok(!csv.includes("Hidden lead"));
+});
+
+test("plans button reads View plans on Free and Update my plan when paying; hidden for the owner", async () => {
+  const { plansButton, PLAN_BANNER, NO_LIMITS } = await import("./entitlements.ts");
+  const base = { ...NO_LIMITS, ready: true, admin: false, tier: "free" as const };
+  assert.deepEqual(plansButton(base), { show: true, paid: false, label: "View plans" });
+  assert.equal(plansButton({ ...base, tier: "care" }).label, "Update my plan");
+  assert.equal(plansButton({ ...base, tier: "growth" }).paid, true);
+  assert.equal(plansButton({ ...base, admin: true }).show, false);
+  assert.equal(plansButton(NO_LIMITS).show, false);
+  assert.equal(PLAN_BANNER.care.text, "Care - Most popular");
+  assert.equal(PLAN_BANNER.care.tone, "orange");
+  assert.equal(PLAN_BANNER.free.tone, "blue");
+  assert.equal(PLAN_BANNER.growth.tone, "blue");
 });

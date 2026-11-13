@@ -1,9 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Check, Copy, Plus } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextInput } from "@/components/ui/fields";
+import { LandingEditor } from "@/components/landing-editor";
+import { CREATE_NEW_QUESTIONS } from "@/lib/branding";
+import { quoteFlowAvailable } from "@/lib/data";
+import type { LinkKind } from "@/lib/quote-flow";
 import { SOURCE_OPTIONS } from "@/lib/question-templates";
 import { useLeakKeep } from "@/lib/store";
 import type { LeadLink } from "@/lib/types";
@@ -14,7 +18,9 @@ export const Route = createFileRoute("/links")({
   component: LinksPage,
 });
 
-const SOURCE_HINT = "Where you'll share this link, so you can see which channel brings leads.";
+const SOURCE_LABEL = "Where you'll share this link";
+const SOURCE_HINT =
+  "This tags every lead with where it came from (for example Facebook or Instagram), so you can see which post brings you the most leads. It does not change what the customer sees.";
 
 function LinksPage() {
   return (
@@ -34,6 +40,8 @@ function LinksDesk() {
   const questionnaires = useLeakKeep((state) => state.questionnaires);
   const questionnairesReady = useLeakKeep((state) => state.questionnairesReady);
   const setLinkQuestionnaire = useLeakKeep((state) => state.setLinkQuestionnaire);
+  const navigate = useNavigate();
+  const goCreateQuestions = () => void navigate({ to: "/questions", hash: "templates" });
   const [preset, setPreset] = useState<string>(SOURCE_OPTIONS[0]);
   const [custom, setCustom] = useState("");
   const [questionnaireId, setQuestionnaireId] = useState("");
@@ -44,6 +52,10 @@ function LinksDesk() {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   const [adding, setAdding] = useState(true);
+  const [kind, setKind] = useState<LinkKind>("questionnaire");
+  const [serviceId, setServiceId] = useState("");
+  const services = useLeakKeep((state) => state.services);
+  const quoteReady = quoteFlowAvailable();
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -63,8 +75,21 @@ function LinksDesk() {
     setCreating(true);
     setFormError("");
     try {
-      await addLink(name.slice(0, 120), questionnaireId || null);
+      if (kind === "quote" && !serviceId) {
+        setFormError("Choose the service this quote link is for.");
+        setCreating(false);
+        return;
+      }
+      await addLink(
+        name.slice(0, 120),
+        kind === "questionnaire" ? questionnaireId || null : null,
+        kind === "questionnaire"
+          ? {}
+          : { kind, serviceId: kind === "quote" ? serviceId : null, ctaText: kind === "quote" ? "Send me this quote" : "Send me more info" },
+      );
       setCustom("");
+      setKind("questionnaire");
+      setServiceId("");
       setPreset(SOURCE_OPTIONS[0]);
       setAdding(false);
     } catch (error) {
@@ -151,6 +176,55 @@ function LinksDesk() {
                 {formError}
               </p>
             ) : null}
+            <fieldset>
+              <legend className="mb-2 text-sm font-medium text-ink">What happens when someone opens it?</legend>
+              <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Link type">
+                {(
+                  [
+                    ["questionnaire", "Ask my questions", "They answer your questions."],
+                    ["quote", "Send a quote", "Their quote is built from a service price."],
+                    ["simple", "Simple button", "A picture or video and one button."],
+                  ] as const
+                ).map(([id, label, help]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    aria-checked={kind === id}
+                    disabled={id !== "questionnaire" && !quoteReady}
+                    onClick={() => setKind(id)}
+                    className={cn(
+                      "press rounded-2xl border p-3 text-left disabled:opacity-50",
+                      kind === id ? "border-ink bg-mist" : "border-line bg-paper",
+                    )}
+                  >
+                    <span className="block text-sm font-medium">{label}</span>
+                    <span className="mt-0.5 block text-xs text-muted">{help}</span>
+                  </button>
+                ))}
+              </div>
+              {!quoteReady ? (
+                <p className="mt-2 text-xs text-muted">
+                  Quote and simple links switch on once the quote database update (20261113120000_quote_flow.sql) is applied.
+                </p>
+              ) : null}
+            </fieldset>
+            {kind === "quote" ? (
+              <Field id="new-service" label="Which service is this link for?" hint="The quote uses that service's saved price. Add services on the Services page.">
+                <SelectInput id="new-service" value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
+                  <option value="">Choose a service…</option>
+                  {services
+                    .filter((item) => item.name.trim())
+                    .map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                        {item.price ? ` · ${item.price}` : ""}
+                      </option>
+                    ))}
+                </SelectInput>
+              </Field>
+            ) : null}
+            {kind === "questionnaire" ? (
             <Field
               id="new-questionnaire"
               label="Questions to ask"
@@ -160,7 +234,10 @@ function LinksDesk() {
                 id="new-questionnaire"
                 value={questionnaireId}
                 disabled={!questionnairesReady}
-                onChange={(event) => setQuestionnaireId(event.target.value)}
+                onChange={(event) => {
+                  if (event.target.value === CREATE_NEW_QUESTIONS) return goCreateQuestions();
+                  setQuestionnaireId(event.target.value);
+                }}
               >
                 <option value="">Standard (Quick enquiry)</option>
                 {questionnaires.map((item) => (
@@ -168,8 +245,10 @@ function LinksDesk() {
                     {item.name || "Untitled questionnaire"}
                   </option>
                 ))}
+                <option value={CREATE_NEW_QUESTIONS}>Don't see your questions? Create new…</option>
               </SelectInput>
             </Field>
+            ) : null}
             <div>
               <Button type="submit" disabled={creating}>
                 <Plus className="size-4" aria-hidden="true" />
@@ -208,7 +287,7 @@ function LinksDesk() {
             const url = origin ? `${origin}${path}` : path;
             return (
               <li key={link.id} className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
-                <Field id={`source-${link.id}`} label="Source" hint={SOURCE_HINT}>
+                <Field id={`source-${link.id}`} label={SOURCE_LABEL} hint={SOURCE_HINT}>
                   <TextInput
                     id={`source-${link.id}`}
                     value={link.source}
@@ -226,13 +305,17 @@ function LinksDesk() {
                   </Button>
                 </div>
                 <p className="mt-2 text-sm text-muted">Renaming changes the tag on new leads. The link stays the same.</p>
-                {questionnairesReady ? (
+                {link.kind !== "questionnaire" ? <LandingEditor link={link} /> : null}
+                {questionnairesReady && link.kind === "questionnaire" ? (
                   <div className="mt-3">
                     <Field id={`questions-${link.id}`} label="Questions on this link">
                       <SelectInput
                         id={`questions-${link.id}`}
                         value={link.questionnaireId ?? ""}
-                        onChange={(event) => setLinkQuestionnaire(link.id, event.target.value || null)}
+                        onChange={(event) => {
+                          if (event.target.value === CREATE_NEW_QUESTIONS) return goCreateQuestions();
+                          setLinkQuestionnaire(link.id, event.target.value || null);
+                        }}
                       >
                         <option value="">Standard (Quick enquiry)</option>
                         {questionnaires.map((item) => (
@@ -240,11 +323,17 @@ function LinksDesk() {
                             {item.name || "Untitled questionnaire"}
                           </option>
                         ))}
+                        <option value={CREATE_NEW_QUESTIONS}>Don't see your questions? Create new…</option>
                       </SelectInput>
                     </Field>
                   </div>
                 ) : null}
                 <div className="mt-4 flex flex-wrap gap-2">
+                  <Button size="sm" variant="secondary" asChild>
+                    <Link to="/l/$linkId" params={{ linkId: link.slug }} search={{ preview: "1" }}>
+                      Preview as customer
+                    </Link>
+                  </Button>
                   <Button size="sm" variant="secondary" asChild>
                     <Link to="/l/$linkId" params={{ linkId: link.slug }} target="_blank">
                       Open form
