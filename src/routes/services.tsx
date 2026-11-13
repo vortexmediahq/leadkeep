@@ -7,7 +7,7 @@ import { parseServiceList } from "@/lib/parse-services";
 import { useLeakKeep } from "@/lib/store";
 
 export const Route = createFileRoute("/services")({
-  head: () => ({ meta: [{ title: "Services · LeakKeep" }] }),
+  head: () => ({ meta: [{ title: "Services · LeadKeep" }] }),
   component: ServicesPage,
 });
 
@@ -49,9 +49,15 @@ function Services() {
       </header>
 
       {services.length === 0 ? (
-        <p className="rounded-3xl border border-line bg-paper px-4 py-8 text-center text-sm text-muted">
-          No services yet. Add one, or paste a list below.
-        </p>
+        <div className="rounded-3xl border border-dashed border-line bg-paper px-4 py-10 text-center">
+          <p className="font-medium text-ink">No services yet</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
+            Add what you sell and your usual prices, so quotes use your real rates. Or paste a list below.
+          </p>
+          <Button className="mt-4" onClick={addService}>
+            Add your first service
+          </Button>
+        </div>
       ) : (
         <ul className="flex flex-col gap-4">
           {services.map((service) => (
@@ -112,7 +118,7 @@ function Services() {
           value={paste}
           onChange={(event) => setPaste(event.target.value)}
           aria-label="Paste services"
-          placeholder={`Blocked drain | Kitchen and bath lines | ${currency}650–${currency}1,800 | Camera extra\nGeyser replacement — ${currency}6,800–${currency}11,500\nLeak detection: find a hidden leak, from ${currency}950`}
+          placeholder={`Consultation | First meeting to plan your needs | ${currency}500\nStandard package — ${currency}2,500\nCustom work: tailored to you, from ${currency}1,000`}
         />
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button variant="secondary" onClick={onImport} disabled={!paste.trim()}>

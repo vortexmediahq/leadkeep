@@ -2,6 +2,8 @@ import { create } from "zustand";
 import {
   deleteLinkRow,
   fetchAllowance,
+  fetchEntitlements,
+  fetchFoundingSpotsLeft,
   deleteServiceRow,
   fetchLeadById,
   fetchLeads,
@@ -10,6 +12,12 @@ import {
   fetchServices,
   fetchTemplate,
   insertLinks,
+  insertQuestionnaire,
+  updateQuestionnaireRow,
+  deleteQuestionnaireRow,
+  fetchQuestionnaires,
+  questionnairesAvailable,
+  updateLinkQuestionnaire,
   insertServices,
   saveProfile,
   saveTemplate,
@@ -19,9 +27,13 @@ import {
   updateServiceRow,
   type StoredTemplate,
 } from "@/lib/data";
+import { NO_LIMITS, type Entitlements } from "@/lib/entitlements";
 import type { Allowance } from "@/lib/plan";
 import { blankBusiness, seedTemplate, starterLinkSources, starterServices } from "@/lib/seed";
-import type { Business, Lead, LeadLink, LeadStatus, QuoteTemplate, Service } from "@/lib/types";
+import type { Business, Lead, LeadLink, LeadStatus, Questionnaire, QuoteTemplate, Service } from "@/lib/types";
+import { duplicateQuestionnaire, newId } from "@/lib/question-templates";
+
+export type QuestionnaireDraft = Omit<Questionnaire, "id" | "updatedAt">;
 
 const SAVE_DELAY_MS = 600;
 const LEGACY_KEY = "leakkeep.v1";
@@ -30,10 +42,14 @@ type LeakState = {
   business: Business;
   services: Service[];
   links: LeadLink[];
+  questionnaires: Questionnaire[];
+  questionnairesReady: boolean;
   template: StoredTemplate;
   leads: Lead[];
   incoming: Lead | null;
   allowance: Allowance | null;
+  entitlements: Entitlements;
+  foundingSpotsLeft: number | null;
   loadedFor: string | null;
   loadError: string;
   saveError: string;
@@ -44,13 +60,19 @@ type LeakState = {
   clearSaveError: () => void;
   dismissIncoming: () => void;
   setAllowance: (allowance: Allowance) => void;
+  refreshPlan: () => Promise<void>;
   updateBusiness: (patch: Partial<Business>) => void;
   updateTemplate: (patch: Partial<QuoteTemplate>) => void;
   addService: () => void;
   updateService: (id: string, patch: Partial<Omit<Service, "id">>) => void;
   removeService: (id: string) => void;
   importServices: (items: Omit<Service, "id">[]) => number;
-  addLink: (source: string) => Promise<void>;
+  addLink: (source: string, questionnaireId?: string | null) => Promise<void>;
+  setLinkQuestionnaire: (id: string, questionnaireId: string | null) => void;
+  createQuestionnaire: (draft: QuestionnaireDraft) => Promise<string>;
+  saveQuestionnaire: (item: Questionnaire) => void;
+  duplicateQuestionnaire: (id: string) => Promise<string | null>;
+  removeQuestionnaire: (id: string) => void;
   updateLink: (id: string, source: string) => void;
   removeLink: (id: string) => void;
   updateLead: (id: string, patch: Pick<Lead, "quote" | "quoteUpdatedAt">) => void;
@@ -125,23 +147,33 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
     business: blankBusiness,
     services: [],
     links: [],
+    questionnaires: [],
+    questionnairesReady: false,
     template: blank,
     leads: [],
     incoming: null,
     allowance: null,
+    entitlements: NO_LIMITS,
+    foundingSpotsLeft: null,
     loadedFor: null,
     loadError: "",
     saveError: "",
     load: async (userId) => {
       try {
-        let [services, template, leads, profile, links, allowance] = await Promise.all([
+        const [loadedServices, loadedTemplate, leads, loadedProfile, loadedLinks, allowance, entitlements, foundingSpotsLeft] = await Promise.all([
           fetchServices(),
           fetchTemplate(),
           fetchLeads(),
           fetchProfile(),
           fetchLinks(),
           fetchAllowance().catch(() => null),
+          fetchEntitlements().catch(() => null),
+          fetchFoundingSpotsLeft().catch(() => null),
         ]);
+        let services = loadedServices;
+        let template = loadedTemplate;
+        let profile = loadedProfile;
+        let links = loadedLinks;
         if (!template && services.length === 0) {
           services = starterServices.map((item) => ({ ...item, id: crypto.randomUUID() }));
           await insertServices(services);
@@ -155,13 +187,19 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
             links = await insertLinks(legacy.sources.length ? legacy.sources : starterLinkSources);
           }
         }
+        const questionnairesReady = questionnairesAvailable();
+        const questionnaires = questionnairesReady ? await fetchQuestionnaires().catch(() => []) : [];
         set({
           services,
           leads,
           links,
+          questionnaires,
+          questionnairesReady,
           business: profile,
           template: template ?? blank,
           allowance,
+          entitlements: entitlements ?? NO_LIMITS,
+          foundingSpotsLeft,
           loadedFor: userId,
           loadError: "",
         });
@@ -207,9 +245,13 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
         business: blankBusiness,
         services: [],
         links: [],
+        questionnaires: [],
+        questionnairesReady: false,
         leads: [],
         incoming: null,
         allowance: null,
+        entitlements: NO_LIMITS,
+        foundingSpotsLeft: null,
         template: blank,
         loadedFor: null,
         loadError: "",
@@ -219,6 +261,18 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
     clearSaveError: () => set({ saveError: "" }),
     dismissIncoming: () => set({ incoming: null }),
     setAllowance: (allowance) => set({ allowance }),
+    refreshPlan: async () => {
+      const [entitlements, foundingSpotsLeft, allowance] = await Promise.all([
+        fetchEntitlements().catch(() => null),
+        fetchFoundingSpotsLeft().catch(() => null),
+        fetchAllowance().catch(() => null),
+      ]);
+      set((state) => ({
+        entitlements: entitlements ?? state.entitlements,
+        foundingSpotsLeft: foundingSpotsLeft ?? state.foundingSpotsLeft,
+        allowance: allowance ?? state.allowance,
+      }));
+    },
     updateBusiness: (patch) => {
       set((state) => ({ business: { ...state.business, ...patch } }));
       later("business", () => saveProfile(get().business));
@@ -258,9 +312,40 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
       run(() => insertServices(next));
       return next.length;
     },
-    addLink: async (source) => {
-      const [link] = await insertLinks([source]);
+    addLink: async (source, questionnaireId = null) => {
+      const [link] = await insertLinks([source], questionnaireId);
       if (link) set((state) => ({ links: [link, ...state.links] }));
+    },
+    setLinkQuestionnaire: (id, questionnaireId) => {
+      set((state) => ({ links: state.links.map((link) => (link.id === id ? { ...link, questionnaireId } : link)) }));
+      run(() => updateLinkQuestionnaire(id, questionnaireId));
+    },
+    createQuestionnaire: async (draft) => {
+      const item: Questionnaire = { ...draft, id: newId(), updatedAt: new Date().toISOString() };
+      await insertQuestionnaire(item);
+      set((state) => ({ questionnaires: [item, ...state.questionnaires] }));
+      return item.id;
+    },
+    saveQuestionnaire: (item) => {
+      const next = { ...item, updatedAt: new Date().toISOString() };
+      set((state) => ({ questionnaires: state.questionnaires.map((q) => (q.id === item.id ? next : q)) }));
+      later(`questionnaire:${item.id}`, () => {
+        const current = get().questionnaires.find((q) => q.id === item.id);
+        return current ? updateQuestionnaireRow(current) : Promise.resolve();
+      });
+    },
+    duplicateQuestionnaire: async (id) => {
+      const source = get().questionnaires.find((q) => q.id === id);
+      if (!source) return null;
+      return get().createQuestionnaire(duplicateQuestionnaire(source));
+    },
+    removeQuestionnaire: (id) => {
+      cancel(`questionnaire:${id}`);
+      set((state) => ({
+        questionnaires: state.questionnaires.filter((q) => q.id !== id),
+        links: state.links.map((link) => (link.questionnaireId === id ? { ...link, questionnaireId: null } : link)),
+      }));
+      run(() => deleteQuestionnaireRow(id));
     },
     updateLink: (id, source) => {
       set((state) => ({ links: state.links.map((link) => (link.id === id ? { ...link, source } : link)) }));

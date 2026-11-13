@@ -4,7 +4,7 @@ import { Field, TextArea } from "@/components/ui/fields";
 import { useLeakKeep } from "@/lib/store";
 
 export const Route = createFileRoute("/quote-style")({
-  head: () => ({ meta: [{ title: "Quote style · LeakKeep" }] }),
+  head: () => ({ meta: [{ title: "Quote style · LeadKeep" }] }),
   component: QuoteStylePage,
 });
 

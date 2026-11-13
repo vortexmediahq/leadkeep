@@ -3,18 +3,21 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Check, ChevronLeft, Copy, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { ContactButtons } from "@/components/contact-buttons";
 import { StatusBadge } from "@/components/status-badge";
+import { needsFollowUp } from "@/lib/alerts";
 import { Button } from "@/components/ui/button";
 import { SelectInput, TextArea } from "@/components/ui/fields";
 import { generateQuote } from "@/lib/quote.functions";
 import { quotesLeft } from "@/lib/plan";
 import { useLeakKeep } from "@/lib/store";
+import { useAccess, useGatedLeads } from "@/lib/use-access";
 import { supabase } from "@/lib/supabase";
 import { STATUSES, type LeadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/leads/$leadId")({
-  head: () => ({ meta: [{ title: "Lead · LeakKeep" }] }),
+  head: () => ({ meta: [{ title: "Lead · LeadKeep" }] }),
   component: LeadPage,
 });
 
@@ -28,7 +31,10 @@ function LeadPage() {
 }
 
 function LeadDetail({ leadId }: { leadId: string }) {
-  const lead = useLeakKeep((state) => state.leads.find((item) => item.id === leadId));
+  const businessName = useLeakKeep((state) => state.business.name);
+  const leads = useGatedLeads();
+  const lead = leads.find((item) => item.id === leadId);
+  const access = useAccess();
   const hasServices = useLeakKeep((state) => state.services.some((service) => service.name.trim()));
   const hasStyle = useLeakKeep((state) =>
     [state.template.tone, state.template.structure, state.template.paymentTerms].some((part) => part.trim()),
@@ -63,8 +69,37 @@ function LeadDetail({ leadId }: { leadId: string }) {
     );
   }
 
+  if (lead.locked) {
+    return (
+      <div className="mx-auto flex max-w-3xl flex-col gap-4">
+        <Link to="/" className="inline-flex min-h-11 items-center gap-1 self-start text-sm font-medium text-muted">
+          <ChevronLeft className="size-4" aria-hidden="true" />
+          Leads
+        </Link>
+        <div className="rounded-3xl border border-accent/40 bg-accent-soft p-6">
+          <h1 className="text-2xl font-semibold tracking-tight">This lead is saved for you</h1>
+          <p className="mt-2 text-sm text-ink-soft">
+            Someone got in touch {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })} through {lead.source || "your link"}.
+            Your Free plan shows the details of your first 10 leads. Upgrade to see their name, number and answers, and reply while
+            they're still interested.
+          </p>
+          <p className="mt-4 select-none text-sm text-ink-soft blur-[5px]" aria-hidden="true">
+            Jordan Example · 082 000 0000 · jordan@example.com
+          </p>
+          <Button asChild className="mt-4">
+            <Link to="/pricing">
+              <Sparkles className="size-4" aria-hidden="true" />
+              Unlock my leads
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const current = lead;
-  const outOfQuotes = allowance?.plan === "free" && quotesLeft(allowance) === 0;
+  const aiOn = access.features.aiQuotes;
+  const outOfQuotes = !aiOn || (allowance?.plan === "free" && quotesLeft(allowance) === 0);
 
   const saveText = (value: string) => {
     setText(value);
@@ -115,7 +150,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
     ["Phone", lead.phone],
     ["Email", lead.email],
     ["Address", lead.address],
-    ["Job", lead.jobType],
+    ["Form", lead.jobType],
     ["Urgency", lead.urgency],
     ["Preferred time", lead.preferredTime],
     ["Property", lead.propertyType],
@@ -141,6 +176,28 @@ function LeadDetail({ leadId }: { leadId: string }) {
         <StatusBadge status={lead.status} />
       </header>
 
+      {needsFollowUp(lead) ? (
+        <p role="status" className="rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-ink">
+          <strong>Follow up today.</strong> This lead came in over a day ago and isn't marked as contacted yet.
+        </p>
+      ) : null}
+
+      <section className="rounded-3xl border border-line bg-paper p-4 shadow-panel" aria-label="Get in touch">
+        <h2 className="mb-3 text-lg font-semibold tracking-tight">Get in touch</h2>
+        <ContactButtons
+          name={lead.name}
+          phone={lead.phone}
+          email={lead.email}
+          business={businessName}
+          onContact={() => {
+            if (current.status === "new") setStatus(current.id, "contacted");
+          }}
+        />
+        {lead.status === "new" ? (
+          <p className="mt-2 text-xs text-muted">Tapping a button marks this lead as contacted.</p>
+        ) : null}
+      </section>
+
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
         <section className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
           <h2 className="text-lg font-semibold tracking-tight">Questionnaire</h2>
@@ -156,10 +213,19 @@ function LeadDetail({ leadId }: { leadId: string }) {
                 </div>
               ) : null,
             )}
-            <div className="border-b border-line py-3 last:border-b-0">
-              <dt className="text-sm text-muted">What they told you</dt>
-              <dd className="mt-1 text-base break-words whitespace-pre-wrap text-ink">{lead.description}</dd>
-            </div>
+            {lead.responses.length ? (
+              lead.responses.map((item, index) => (
+                <div key={`${index}-${item.question}`} className="border-b border-line py-3 last:border-b-0">
+                  <dt className="text-sm text-muted">{item.question}</dt>
+                  <dd className="mt-1 text-base break-words whitespace-pre-wrap text-ink">{item.answer || "—"}</dd>
+                </div>
+              ))
+            ) : lead.description.trim() ? (
+              <div className="border-b border-line py-3 last:border-b-0">
+                <dt className="text-sm text-muted">Their answers</dt>
+                <dd className="mt-1 text-base break-words whitespace-pre-wrap text-ink">{lead.description}</dd>
+              </div>
+            ) : null}
           </dl>
           <div className="mt-4">
             <p className="mb-2 text-sm font-medium">Status</p>
@@ -201,7 +267,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
         <aside className="rounded-3xl border border-line bg-paper p-4 shadow-panel lg:sticky lg:top-6">
           <h2 className="text-lg font-semibold tracking-tight">Quote</h2>
           <p className="mt-1 text-sm text-muted">
-            Uses this job, your{" "}
+            Uses these answers, your{" "}
             <Link to="/services" className="font-medium text-primary">
               services
             </Link>
@@ -240,7 +306,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
           ) : null}
           {outOfQuotes ? (
             <div className="mt-4 rounded-xl border border-primary/30 bg-primary-soft p-3">
-              <p className="text-sm font-medium text-ink">You've used all {allowance?.limit} free AI quotes this month</p>
+              <p className="text-sm font-medium text-ink">AI-written quotes are on Care and Growth</p>
               <p className="mt-1 text-sm text-ink-soft">
                 You can still write and edit this quote yourself. Upgrade for unlimited AI quotes.
               </p>
@@ -273,7 +339,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
               {pending ? "Writing quote…" : text.trim() ? "Regenerate quote" : "Generate quote"}
             </Button>
           )}
-          {allowance?.plan === "free" && !outOfQuotes ? (
+          {aiOn && allowance?.plan === "free" && allowance.limit > 0 && !outOfQuotes ? (
             <p className="mt-2 text-center text-xs text-muted">
               {quotesLeft(allowance)} of {allowance.limit} free AI quotes left this month ·{" "}
               <Link to="/pricing" className="font-medium text-primary">
@@ -291,7 +357,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
             value={text}
             onChange={(event) => saveText(event.target.value)}
             readOnly={pending}
-            placeholder="Your quote will land here, built from this job, your prices and your quote style."
+            placeholder="Your quote will land here, built from these answers, your prices and your quote style."
           />
           <Button
             className="mt-3 w-full"

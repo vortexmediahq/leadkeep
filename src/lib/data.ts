@@ -1,6 +1,8 @@
+import { toEntitlements, type Entitlements } from "@/lib/entitlements";
 import { toAllowance, type Allowance } from "@/lib/plan";
 import { supabase } from "@/lib/supabase";
-import type { Business, Lead, LeadInput, LeadLink, LeadStatus, QuoteTemplate, Service } from "@/lib/types";
+import { parseQuestions } from "@/lib/question-templates";
+import type { Business, Lead, LeadInput, LeadLink, LeadResponse, LeadStatus, Question, Questionnaire, QuoteTemplate, Service } from "@/lib/types";
 
 type ServiceRow = { id: string; name: string; description: string; price: string; notes: string };
 
@@ -15,8 +17,16 @@ export type TemplateRow = {
 
 type LeadAnswers = Pick<
   Lead,
-  "jobType" | "description" | "urgency" | "preferredTime" | "propertyType" | "budget" | "accessNotes"
+  "jobType" | "description" | "urgency" | "preferredTime" | "propertyType" | "budget" | "accessNotes" | "responses"
 >;
+
+function toResponses(value: unknown): LeadResponse[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+    .map((item) => ({ question: text(item.question), answer: text(item.answer) }))
+    .filter((item) => item.question || item.answer);
+}
 
 export type LeadRow = {
   id: string;
@@ -37,6 +47,8 @@ export const LEAD_COLUMNS =
   "id, link_id, source, customer_name, phone, email, address, answers, status, quote, quote_updated_at, created_at";
 
 export type StoredTemplate = QuoteTemplate & { id: string | null };
+
+const text = (value: unknown) => (typeof value === "string" ? value : "");
 
 function fail(action: string, error: { message: string } | null): never {
   throw new Error(`Couldn't ${action}. ${error?.message ?? ""}`.trim());
@@ -59,6 +71,7 @@ export function toLead(row: LeadRow): Lead {
     propertyType: answers.propertyType ?? "",
     budget: answers.budget ?? "",
     accessNotes: answers.accessNotes ?? "",
+    responses: toResponses(answers.responses),
     status: row.status,
     createdAt: row.created_at,
     quote: row.quote,
@@ -150,17 +163,19 @@ export type PublicForm = {
   source: string;
   business: { name: string; trade: string; city: string };
   services: string[];
+  questionnaire: { name: string; intro: string; questions: Question[] } | null;
 };
-
-const text = (value: unknown) => (typeof value === "string" ? value : "");
 
 export async function fetchPublicForm(slug: string): Promise<PublicForm | null> {
   const { data, error } = await supabase.rpc("public_lead_form", { p_slug: slug });
   if (error) fail("load this form", error);
   if (!data || typeof data !== "object") return null;
-  const form = data as { source?: unknown; business?: Record<string, unknown>; services?: unknown };
+  const form = data as { source?: unknown; business?: Record<string, unknown>; services?: unknown; questionnaire?: unknown };
   const business = form.business ?? {};
+  const raw = form.questionnaire && typeof form.questionnaire === "object" ? (form.questionnaire as Record<string, unknown>) : null;
+  const questions = raw ? parseQuestions(raw.questions) : [];
   return {
+    questionnaire: raw && questions.length ? { name: text(raw.name), intro: text(raw.intro), questions } : null,
     source: text(form.source),
     business: { name: text(business.name), trade: text(business.trade), city: text(business.city) },
     services: Array.isArray(form.services) ? form.services.filter((name): name is string => typeof name === "string") : [],
@@ -176,6 +191,7 @@ export async function submitLeadViaLink(slug: string, input: Omit<LeadInput, "li
     propertyType: input.propertyType,
     budget: input.budget,
     accessNotes: input.accessNotes,
+    responses: input.responses,
   };
   const { data, error } = await supabase.rpc("submit_lead_via_link", {
     p_slug: slug,
@@ -230,26 +246,94 @@ export async function saveProfile(business: Business) {
   if (error) fail("save your business details", error);
 }
 
-type LinkRow = { id: string; slug: string; source: string; created_at: string };
+type LinkRow = { id: string; slug: string; source: string; created_at: string; questionnaire_id?: string | null };
 
-const toLink = (row: LinkRow): LeadLink => ({ id: row.id, slug: row.slug, source: row.source, createdAt: row.created_at });
+const toLink = (row: LinkRow): LeadLink => ({
+  id: row.id,
+  slug: row.slug,
+  source: row.source,
+  questionnaireId: row.questionnaire_id ?? null,
+  createdAt: row.created_at,
+});
+
+const LINK_COLUMNS = "id, slug, source, created_at";
+
+/**
+ * Questionnaires need the database update in supabase/proposed/. Until it's applied,
+ * every questionnaire call fails softly and links use the default questions.
+ */
+let questionnairesReady: boolean | null = null;
+export const questionnairesAvailable = () => questionnairesReady === true;
 
 export async function fetchLinks(): Promise<LeadLink[]> {
-  const { data, error } = await supabase
-    .from("lead_links")
-    .select("id, slug, source, created_at")
-    .order("created_at", { ascending: false });
+  if (questionnairesReady !== false) {
+    const { data, error } = await supabase
+      .from("lead_links")
+      .select(`${LINK_COLUMNS}, questionnaire_id`)
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      questionnairesReady = true;
+      return (data as LinkRow[]).map(toLink);
+    }
+    questionnairesReady = false;
+  }
+  const { data, error } = await supabase.from("lead_links").select(LINK_COLUMNS).order("created_at", { ascending: false });
   if (error || !data) fail("load your links", error);
   return (data as LinkRow[]).map(toLink);
 }
 
-export async function insertLinks(sources: string[]): Promise<LeadLink[]> {
+export async function insertLinks(sources: string[], questionnaireId: string | null = null): Promise<LeadLink[]> {
+  const withQuestions = questionnairesReady === true && questionnaireId;
   const { data, error } = await supabase
     .from("lead_links")
-    .insert(sources.map((source) => ({ source })))
-    .select("id, slug, source, created_at");
+    .insert(sources.map((source) => (withQuestions ? { source, questionnaire_id: questionnaireId } : { source })))
+    .select(questionnairesReady === true ? `${LINK_COLUMNS}, questionnaire_id` : LINK_COLUMNS);
   if (error || !data) fail("create the link", error);
-  return (data as LinkRow[]).map(toLink);
+  return (data as unknown as LinkRow[]).map(toLink);
+}
+
+export async function updateLinkQuestionnaire(id: string, questionnaireId: string | null) {
+  const { error } = await supabase.from("lead_links").update({ questionnaire_id: questionnaireId }).eq("id", id);
+  if (error) fail("change the link's questions", error);
+}
+
+type QuestionnaireRow = { id: string; name: string; intro: string; questions: unknown; updated_at: string };
+
+const toQuestionnaire = (row: QuestionnaireRow): Questionnaire => ({
+  id: row.id,
+  name: row.name,
+  intro: row.intro,
+  questions: parseQuestions(row.questions),
+  updatedAt: row.updated_at,
+});
+
+export async function fetchQuestionnaires(): Promise<Questionnaire[]> {
+  const { data, error } = await supabase
+    .from("questionnaires")
+    .select("id, name, intro, questions, updated_at")
+    .order("updated_at", { ascending: false });
+  if (error || !data) fail("load your questionnaires", error);
+  return (data as QuestionnaireRow[]).map(toQuestionnaire);
+}
+
+export async function insertQuestionnaire(item: Omit<Questionnaire, "updatedAt">) {
+  const { error } = await supabase
+    .from("questionnaires")
+    .insert({ id: item.id, name: item.name, intro: item.intro, questions: item.questions });
+  if (error) fail("save the questionnaire", error);
+}
+
+export async function updateQuestionnaireRow(item: Omit<Questionnaire, "updatedAt">) {
+  const { error } = await supabase
+    .from("questionnaires")
+    .update({ name: item.name, intro: item.intro, questions: item.questions, updated_at: new Date().toISOString() })
+    .eq("id", item.id);
+  if (error) fail("save the questionnaire", error);
+}
+
+export async function deleteQuestionnaireRow(id: string) {
+  const { error } = await supabase.from("questionnaires").delete().eq("id", id);
+  if (error) fail("remove the questionnaire", error);
 }
 
 export async function updateLinkSource(id: string, source: string) {
@@ -275,4 +359,17 @@ export async function fetchAllowance(): Promise<Allowance | null> {
   const { data, error } = await supabase.rpc("quote_allowance");
   if (error) fail("load your plan", error);
   return toAllowance(data);
+}
+
+/** Needs supabase/proposed/20261110090000_plans_whop.sql. Returns null until that update is applied. */
+export async function fetchEntitlements(): Promise<Entitlements | null> {
+  const { data, error } = await supabase.rpc("my_entitlements");
+  if (error) return null;
+  return toEntitlements(data);
+}
+
+export async function fetchFoundingSpotsLeft(): Promise<number | null> {
+  const { data, error } = await supabase.rpc("founding_spots_left");
+  if (error || typeof data !== "number") return null;
+  return data;
 }

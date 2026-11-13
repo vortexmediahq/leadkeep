@@ -3,7 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "LeakKeep";
+const APP_NAME = "LeadKeep";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -13,9 +13,9 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content: "Capture job leads from a shareable link and turn them into quotes.",
+        content: "LeadKeep captures every lead from your own questionnaire link so you can call back or book fast.",
       },
-      { name: "theme-color", content: "#f3f6f8" },
+      { name: "theme-color", content: "#0b1f3b" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
@@ -23,7 +23,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,480;8..60,600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,480;8..60,600&display=swap",
       },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
