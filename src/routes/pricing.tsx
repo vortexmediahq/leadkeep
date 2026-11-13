@@ -11,6 +11,7 @@ import {
   FREE_LEAD_LIMIT,
   hasTesterAccess,
   lockedCount,
+  PLAN_BANNER,
   PRICES,
   type Entitlements,
   type Tier,
@@ -187,17 +188,23 @@ function Pricing() {
               aria-labelledby={`plan-${plan.id}`}
               className={cn(
                 "flex flex-col rounded-3xl border bg-paper p-5 shadow-panel",
-                featured ? "border-primary ring-1 ring-primary" : "border-line",
+                featured ? "border-[#FF5F03] ring-1 ring-[#FF5F03]" : "border-line",
               )}
             >
+              <div
+                className={cn(
+                  "-mx-5 -mt-5 mb-4 rounded-t-3xl px-5 py-2.5 text-center text-sm font-semibold tracking-tight text-white",
+                  PLAN_BANNER[plan.id].tone === "orange" ? "bg-[#FF5F03]" : "bg-blue-700",
+                )}
+              >
+                {PLAN_BANNER[plan.id].text}
+              </div>
               <div className="flex items-center justify-between gap-2">
                 <h2 id={`plan-${plan.id}`} className="text-lg font-semibold tracking-tight">
                   {plan.name}
                 </h2>
                 {isCurrent ? (
                   <span className="rounded-full bg-mist px-2.5 py-1 text-xs font-medium text-muted">Current plan</span>
-                ) : featured ? (
-                  <span className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary">Most popular</span>
                 ) : null}
               </div>
               <p className="mt-1 text-sm text-muted">{plan.blurb}</p>

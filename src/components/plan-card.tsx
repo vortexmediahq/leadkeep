@@ -1,7 +1,7 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Sparkles } from "lucide-react";
 import { useMemo } from "react";
-import { effectiveTier, FREE_LEAD_LIMIT, lockedCount, testerReminderDays } from "@/lib/entitlements";
+import { effectiveTier, FREE_LEAD_LIMIT, lockedCount, plansButton, testerReminderDays } from "@/lib/entitlements";
 import { useAccess, useGatedLeads } from "@/lib/use-access";
 import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -113,5 +113,25 @@ export function TesterReminder() {
         See plans
       </Link>
     </div>
+  );
+}
+
+/** Slim "View plans" / "Update my plan" button. `compact` is the short phone version. Never shown on the plans page itself. */
+export function PlansButton({ compact }: { compact?: boolean }) {
+  const entitlements = useLeakKeep((state) => state.entitlements);
+  const path = useRouterState({ select: (state) => state.location.pathname });
+  const button = plansButton(entitlements);
+  if (!button.show || path.startsWith("/pricing")) return null;
+  return (
+    <Link
+      to="/pricing"
+      className={cn(
+        "press inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-white",
+        button.paid ? "bg-blue-700 hover:bg-blue-800" : "bg-[#D94F00] hover:bg-[#BF4500]",
+      )}
+    >
+      <Sparkles className="size-3.5" aria-hidden="true" />
+      {compact ? (button.paid ? "My plan" : "Plans") : button.label}
+    </Link>
   );
 }

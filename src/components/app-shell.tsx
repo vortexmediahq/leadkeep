@@ -7,10 +7,11 @@ import { Logo } from "@/components/mark";
 import { PoweredBy } from "@/components/powered-by";
 import { NotificationBell } from "@/components/notification-bell";
 import { UnusualActivityBanner } from "@/components/unusual-activity";
-import { PlanCard, PlanPill, TesterReminder } from "@/components/plan-card";
+import { PlanCard, PlanPill, PlansButton, TesterReminder } from "@/components/plan-card";
 import { signOut, useSession } from "@/lib/session";
 import { BrandMark } from "@/components/brand-mark";
 import { hasBranding } from "@/lib/branding";
+import { plansButton } from "@/lib/entitlements";
 import { useEffectiveBranding } from "@/lib/use-access";
 import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -145,6 +146,7 @@ function Shell({ children }: { children: ReactNode }) {
   const business = useLeakKeep((state) => state.business);
   const branding = useEffectiveBranding();
   const branded = hasBranding(branding);
+  const entitlements = useLeakKeep((state) => state.entitlements);
   const fresh = useLeakKeep((state) => state.leads.filter((lead) => lead.status === "new").length);
   const saveError = useLeakKeep((state) => state.saveError);
   const email = useSession((state) => state.user?.email ?? "");
@@ -212,6 +214,11 @@ function Shell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="min-w-0 flex-1">
+        {plansButton(entitlements).show ? (
+          <div className="sticky top-0 z-10 hidden items-center justify-end border-b border-line bg-paper/95 px-8 py-1.5 backdrop-blur md:flex">
+            <PlansButton />
+          </div>
+        ) : null}
         <header className="sticky top-0 z-10 border-b border-line bg-paper px-4 py-3 md:hidden">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
@@ -223,6 +230,8 @@ function Shell({ children }: { children: ReactNode }) {
               <p className="truncate text-sm text-muted">{business.name || email}</p>
             </div>
             <PlanPill />
+            {/* Free accounts already have the plans pill above; paying accounts get a short "My plan" link. */}
+            {entitlements.tier !== "free" ? <PlansButton compact /> : null}
             <NotificationBell />
             <Link
               to="/settings"
