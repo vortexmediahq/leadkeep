@@ -1,1 +1,0 @@
-import{c as e}from"./link-B3lRHQ53.js";import{t}from"./auth-form-DmybMYGy.js";var n=e(),r=()=>(0,n.jsx)(t,{mode:`signup`});export{r as component};
