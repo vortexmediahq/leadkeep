@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Inbox, Link2, ListChecks, LogOut, MessageSquareHeart, ScrollText, Settings, Wrench, X } from "lucide-react";
+import { Inbox, LayoutDashboard, Link2, ListChecks, LogOut, MessageSquareHeart, ScrollText, Settings, Wrench, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { BrandTheme } from "@/components/brand-theme";
 import { ClientGate } from "@/components/client-gate";
@@ -17,6 +17,7 @@ import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const NAV = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, match: (path: string) => path.startsWith("/dashboard") },
   { to: "/", label: "Leads", icon: Inbox, match: (path: string) => path === "/" || path.startsWith("/leads") },
   { to: "/services", label: "Services", icon: Wrench, match: (path: string) => path.startsWith("/services") },
   {
@@ -61,7 +62,7 @@ function NavItem({
       aria-current={active ? "page" : undefined}
       className={cn(
         "press flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium",
-        stacked && "min-h-16 flex-1 flex-col justify-center gap-1 px-1 text-xs",
+        stacked && "min-h-16 min-w-0 flex-1 flex-col justify-center gap-1 px-0.5 text-[11px]",
         active ? "bg-primary-soft text-primary" : "text-muted hover:bg-mist hover:text-ink",
         stacked && active && "bg-transparent",
       )}

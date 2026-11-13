@@ -43,7 +43,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }, []);
 
   useEffect(() => {
-    if (status === "signed-in") void navigate({ to: "/" });
+    if (status === "signed-in") void navigate({ to: "/dashboard" });
   }, [status, navigate]);
 
   const submit = async (event: FormEvent) => {
@@ -58,7 +58,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     try {
       if (mode === "login") await signIn(email.trim(), password);
       else await signUp(email.trim(), password);
-      await navigate({ to: "/" });
+      await navigate({ to: "/dashboard" });
     } catch (error) {
       setErrors({ form: error instanceof Error ? error.message : "Something went wrong. Try again." });
     } finally {
@@ -71,7 +71,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setErrors({});
     try {
       await signInWithPasskey();
-      await navigate({ to: "/" });
+      await navigate({ to: "/dashboard" });
     } catch (error) {
       setErrors({ form: error instanceof Error ? error.message : "Something went wrong. Try again." });
     } finally {

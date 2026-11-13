@@ -50,7 +50,7 @@ function ResetPassword() {
     setPending(true);
     try {
       await updatePassword(password);
-      await navigate({ to: "/" });
+      await navigate({ to: "/dashboard" });
     } catch (problem) {
       setErrors({ form: problem instanceof Error ? problem.message : "Something went wrong. Try again." });
     } finally {
