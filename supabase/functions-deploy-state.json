@@ -8,6 +8,22 @@
     "paystack-webhook": {
       "hasChanged": false,
       "hash": "11038e1c46c1cf4136597c4c34ffcd30b7c496c4170aa440c3c61d0f07b5bdd6"
+    },
+    "new-lead-alert": {
+      "hasChanged": false,
+      "hash": "77d20569a8105d99c1fb4225baad90f3f9111a4a25130ad15e2808378823aaae"
+    },
+    "send-quote": {
+      "hasChanged": false,
+      "hash": "6f54cea0086cba8d4646c37e2cd21211019d75d6e51b486b66080c3420f1bd41"
+    },
+    "unusual-login-alert": {
+      "hasChanged": false,
+      "hash": "b180abc59430d18b798077a13c35f24a79553859a8d693944c5cb8f70dcc9a34"
+    },
+    "whop-webhook": {
+      "hasChanged": false,
+      "hash": "23de0c5f88045ff9422600e5138a17751de3f3d82a5e75bbfd1db065b084cea2"
     }
   }
 }
