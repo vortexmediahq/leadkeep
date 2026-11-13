@@ -2,10 +2,46 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { PoweredBy } from "@/components/powered-by";
 import { Capture } from "@/components/lead-form";
-import { fetchPublicForm, type PublicForm } from "@/lib/data";
+import { Landing } from "@/components/landing";
+import { fetchPublicForm, publicLogoUrl, type PublicForm } from "@/lib/data";
+import { parseVideoUrl } from "@/lib/quote-flow";
+
+/** Facebook and WhatsApp read these tags when the link is shared. They only see them if the host renders the page on the server. */
+async function loadShare(slug: string) {
+  try {
+    if (!/^[a-z0-9]{6,32}$/.test(slug)) return null;
+    const form = await fetchPublicForm(slug);
+    if (!form) return null;
+    const video = form.landing.mediaUrl ? parseVideoUrl(form.landing.mediaUrl) : null;
+    const videoId = video?.provider === "youtube" ? video.embedUrl.split("/").pop() : "";
+    const image =
+      (form.landing.mediaPath && publicLogoUrl(form.landing.mediaPath)) ||
+      (videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : "") ||
+      (form.branding?.logoPath ? publicLogoUrl(form.branding.logoPath) : "");
+    const title = form.landing.headline.trim() || form.business.name || "Get in touch";
+    const description =
+      form.landing.intro.trim().slice(0, 200) || `Get in touch with ${form.business.name || "us"}.`;
+    return { title, description, image };
+  } catch {
+    return null;
+  }
+}
 
 export const Route = createFileRoute("/l/$linkId")({
-  head: () => ({ meta: [{ title: "Get in touch · LeadKeep" }] }),
+  loader: ({ params }) => loadShare(params.linkId.toLowerCase()),
+  head: ({ loaderData }) => ({
+    meta: [
+      { title: loaderData ? `${loaderData.title} · LeadKeep` : "Get in touch · LeadKeep" },
+      ...(loaderData
+        ? [
+            { property: "og:title", content: loaderData.title },
+            { property: "og:description", content: loaderData.description },
+            { property: "og:type", content: "website" },
+            ...(loaderData.image ? [{ property: "og:image", content: loaderData.image }] : []),
+          ]
+        : []),
+    ],
+  }),
   validateSearch: (search: Record<string, unknown>): { preview?: string } =>
     search.preview === "1" ? { preview: "1" } : {},
   component: PublicPage,
@@ -70,6 +106,15 @@ function PublicPage() {
     return <FormMessage title="The form couldn't load" body="Check your connection and refresh the page to try again." />;
   }
   if (loaded.state === "loading") return <FormSkeleton />;
+  if (loaded.form.kind !== "questionnaire") {
+    return (
+      <Landing
+        slug={slug}
+        form={loaded.form}
+        preview={preview ? { onBack: () => (window.history.length > 1 ? window.history.back() : window.close()) } : undefined}
+      />
+    );
+  }
   return (
     <Capture
       key={round}

@@ -7,6 +7,9 @@ import { BRAND_FONTS, HEX_COLOR, hasBranding, parseHexColor } from "@/lib/brandi
 import { useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
 import { useAccess } from "@/lib/use-access";
+import { uploadBrandImage } from "@/lib/data";
+import { QUOTE_STYLES } from "@/lib/quote-flow";
+import { cn } from "@/lib/utils";
 
 export function SettingsBranding() {
   const userId = useSession((state) => state.user?.id ?? "");
@@ -159,6 +162,8 @@ export function SettingsBranding() {
           </span>
         </label>
 
+        <QuoteOptions userId={userId} />
+
         {hasBranding(branding) ? (
           <p className="text-sm text-muted">Once your branding is on, the "Powered by LeadKeep" line stays small and sits under your logo or at the bottom.</p>
         ) : null}
@@ -212,5 +217,110 @@ function ColorField({
         />
       </div>
     </Field>
+  );
+}
+
+function QuoteOptions({ userId }: { userId: string }) {
+  const branding = useLeakKeep((state) => state.branding);
+  const updateBranding = useLeakKeep((state) => state.updateBranding);
+  const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  const onBackground = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !userId) return;
+    setUploading(true);
+    setError("");
+    try {
+      updateBranding({ quoteBgPath: await uploadBrandImage(userId, file, "quote-bg") });
+    } catch (problem) {
+      setError(problem instanceof Error ? problem.message : "We couldn't upload that picture.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 border-t border-line pt-4">
+      <div>
+        <h3 className="font-semibold tracking-tight">Your quotes</h3>
+        <p className="mt-1 text-sm text-muted">Pick how the quote your customer sees looks.</p>
+      </div>
+      <div role="radiogroup" aria-label="Quote style" className="grid gap-2 sm:grid-cols-3">
+        {QUOTE_STYLES.map((style) => {
+          const on = branding.quoteStyle === style.id;
+          return (
+            <button
+              key={style.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => updateBranding({ quoteStyle: style.id })}
+              className={cn("press rounded-2xl border p-3 text-left", on ? "border-ink bg-mist" : "border-line bg-paper")}
+            >
+              <span className="block font-medium">{style.label}</span>
+              <span className="mt-1 block text-sm text-muted">{style.help}</span>
+            </button>
+          );
+        })}
+      </div>
+      <label className="flex items-start gap-3 rounded-2xl border border-line px-4 py-3">
+        <input
+          type="checkbox"
+          className="mt-1 size-4 accent-accent"
+          checked={branding.logoOnQuote}
+          onChange={(event) => updateBranding({ logoOnQuote: event.target.checked })}
+        />
+        <span>
+          <span className="block font-medium">Put my logo on quotes</span>
+          <span className="block text-sm text-muted">Untick to send quotes with your business name only.</span>
+        </span>
+      </label>
+      <label className="flex items-start gap-3 rounded-2xl border border-line px-4 py-3">
+        <input
+          type="checkbox"
+          className="mt-1 size-4 accent-accent"
+          checked={branding.logoOnForm}
+          onChange={(event) => updateBranding({ logoOnForm: event.target.checked })}
+        />
+        <span>
+          <span className="block font-medium">Put my logo on forms and link pages</span>
+          <span className="block text-sm text-muted">What customers see before they send a request.</span>
+        </span>
+      </label>
+      <div>
+        <p className="text-sm font-medium">Quote background (optional)</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Button asChild variant="secondary" size="sm">
+            <label className="cursor-pointer">
+              {uploading ? "Uploading…" : branding.quoteBgPath ? "Replace background" : "Upload background"}
+              <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => void onBackground(event)} disabled={uploading} />
+            </label>
+          </Button>
+          {branding.quoteBgPath ? (
+            <Button type="button" variant="secondary" size="sm" onClick={() => updateBranding({ quoteBgPath: "" })}>
+              Remove
+            </Button>
+          ) : null}
+        </div>
+        {error ? <p className="mt-2 text-sm text-lost">{error}</p> : null}
+        <p className="mt-2 text-sm text-muted">Shown faintly behind the quote so the words stay easy to read. Under 2 MB.</p>
+      </div>
+      <Field id="quote-days" label="Quotes stay open for (days)" hint="After this, the Accept button turns off. 1 to 90 days.">
+        <TextInput
+          id="quote-days"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={90}
+          value={branding.quoteValidDays}
+          onChange={(event) => {
+            const days = Math.round(Number(event.target.value));
+            if (Number.isFinite(days) && days >= 1 && days <= 90) updateBranding({ quoteValidDays: days });
+          }}
+        />
+      </Field>
+    </div>
   );
 }

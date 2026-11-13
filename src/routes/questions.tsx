@@ -69,6 +69,8 @@ function Questions() {
           services: services.map((service) => service.name).filter((name) => name.trim()),
           questionnaire: { name: previewing.name, intro: previewing.intro, questions: previewing.questions },
           branding,
+          kind: "questionnaire",
+          landing: { headline: "", intro: "", mediaPath: "", mediaUrl: "", ctaText: "", serviceName: "" },
         }}
       />
     );

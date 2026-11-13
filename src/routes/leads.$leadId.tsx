@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { BrandedQuote, CustomerQuotePreview, brandedQuotePlainText } from "@/components/branded-quote";
 import { ContactButtons } from "@/components/contact-buttons";
-import { StatusBadge } from "@/components/status-badge";
+import { QuoteShare } from "@/components/quote-share";
+import { LeadBadge } from "@/components/status-badge";
+import { quoteReminder } from "@/lib/quote-flow";
 import { needsFollowUp } from "@/lib/alerts";
 import { Button } from "@/components/ui/button";
 import { SelectInput, TextArea } from "@/components/ui/fields";
@@ -33,6 +35,8 @@ function LeadPage() {
 
 function LeadDetail({ leadId }: { leadId: string }) {
   const businessName = useLeakKeep((state) => state.business.name);
+  const businessPhone = useLeakKeep((state) => state.business.phone);
+  const businessEmail = useLeakKeep((state) => state.business.email);
   const branding = useEffectiveBranding();
   const [previewing, setPreviewing] = useState(false);
   const leads = useGatedLeads();
@@ -163,7 +167,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
   ] as const;
 
   if (previewing) {
-    return <CustomerQuotePreview businessName={businessName} branding={branding} text={text} onBack={() => setPreviewing(false)} />;
+    return <CustomerQuotePreview businessName={businessName} branding={branding} text={text} customer={lead.name} service={lead.serviceName || lead.jobType} contact={{ phone: businessPhone, email: businessEmail }} onBack={() => setPreviewing(false)} />;
   }
 
   return (
@@ -181,8 +185,14 @@ function LeadDetail({ leadId }: { leadId: string }) {
             {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })}
           </p>
         </div>
-        <StatusBadge status={lead.status} />
+        <LeadBadge lead={lead} />
       </header>
+
+      {quoteReminder(lead) ? (
+        <p role="status" className="rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-ink">
+          <strong>Follow up.</strong> {quoteReminder(lead)?.text}
+        </p>
+      ) : null}
 
       {needsFollowUp(lead) ? (
         <p role="status" className="rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-ink">
@@ -367,7 +377,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
             readOnly={pending}
             placeholder="Your quote will land here, built from these answers, your prices and your quote style."
           />
-          <BrandedQuote businessName={businessName} branding={branding} text={text} />
+          <BrandedQuote businessName={businessName} branding={branding} text={text} customer={lead.name} service={lead.serviceName || lead.jobType} contact={{ phone: businessPhone, email: businessEmail }} />
           <Button
             className="mt-3 w-full"
             variant={text.trim() && !pending ? "primary" : "secondary"}
@@ -381,6 +391,7 @@ function LeadDetail({ leadId }: { leadId: string }) {
           <Button className="mt-2 w-full" variant="secondary" onClick={() => setPreviewing(true)} disabled={!text.trim() || pending}>
             Preview as customer
           </Button>
+          <QuoteShare lead={lead} hasText={!!text.trim()} />
           {lead.quoteUpdatedAt ? (
             <p className="mt-2 text-sm text-muted">
               Saved {formatDistanceToNow(new Date(lead.quoteUpdatedAt), { addSuffix: true })}

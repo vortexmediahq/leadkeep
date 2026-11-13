@@ -1,6 +1,6 @@
 # Before the payment webhook and email alerts can go live (nothing here is deployed)
 
-Code is ready in `supabase/proposed/functions/`: `whop-webhook`, `new-lead-alert`, `unusual-login-alert`.
+Code is ready in `supabase/proposed/functions/`: `whop-webhook`, `new-lead-alert`, `unusual-login-alert`, `send-quote` (emails a customer their quote link; needs `20261113120000_quote_flow.sql`, same Resend secrets, "Verify JWT" left ON).
 
 ## Berlize provides
 1. **Resend account** (free): resend.com, then an API key. -> secret `RESEND_API_KEY`.
@@ -11,7 +11,8 @@ Code is ready in `supabase/proposed/functions/`: `whop-webhook`, `new-lead-alert
 6. Supabase Pro before real customers (backups, no pausing).
 
 ## Avery does (after her OK)
-- Create the three functions (whop-webhook with "Verify JWT" off), add the secrets above.
+- Create the four functions (whop-webhook with "Verify JWT" off), add the secrets above.
 - Database > Webhooks: `leads` INSERT -> new-lead-alert; `login_events` INSERT -> unusual-login-alert.
 - Send a Whop test event and one test lead; check `whop_events` and the inbox.
-`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided automatically.
+Until `send-quote` is live the app shows a "Copy link" button on each lead, and quote links still work end to end (the customer sees the quote on screen right after asking).
+`SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are provided automatically.

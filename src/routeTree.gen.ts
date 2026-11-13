@@ -25,6 +25,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as LLinkIdRouteImport } from './routes/l.$linkId'
 import { Route as LeadsLeadIdRouteImport } from './routes/leads.$leadId'
+import { Route as QTokenRouteImport } from './routes/q.$token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -106,6 +107,11 @@ const LeadsLeadIdRoute = LeadsLeadIdRouteImport.update({
   path: '/leads/$leadId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QTokenRoute = QTokenRouteImport.update({
+  id: '/q/$token',
+  path: '/q/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
+  '/q/$token': typeof QTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
+  '/q/$token': typeof QTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/l/$linkId': typeof LLinkIdRoute
   '/leads/$leadId': typeof LeadsLeadIdRoute
+  '/q/$token': typeof QTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/l/$linkId'
     | '/leads/$leadId'
+    | '/q/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/l/$linkId'
     | '/leads/$leadId'
+    | '/q/$token'
   id:
     | '__root__'
     | '/'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/l/$linkId'
     | '/leads/$leadId'
+    | '/q/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -236,6 +248,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   LLinkIdRoute: typeof LLinkIdRoute
   LeadsLeadIdRoute: typeof LeadsLeadIdRoute
+  QTokenRoute: typeof QTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeadsLeadIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/q/$token': {
+      id: '/q/$token'
+      path: '/q/$token'
+      fullPath: '/q/$token'
+      preLoaderRoute: typeof QTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -372,6 +392,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   LLinkIdRoute: LLinkIdRoute,
   LeadsLeadIdRoute: LeadsLeadIdRoute,
+  QTokenRoute: QTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, Clock } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { quoteReminder } from "@/lib/quote-flow";
 import { needsFollowUp, unreadLeads, wantsApp } from "@/lib/alerts";
 import { useAlerts } from "@/lib/alert-store";
 import { useSession } from "@/lib/session";
@@ -29,7 +30,7 @@ export function NotificationBell({ className }: { className?: string }) {
   }, [open]);
 
   const unread = useMemo(() => (wantsApp(channel) ? unreadLeads(leads, lastSeenAt) : []), [leads, lastSeenAt, channel]);
-  const overdue = useMemo(() => leads.filter((lead) => needsFollowUp(lead)), [leads]);
+  const overdue = useMemo(() => leads.filter((lead) => needsFollowUp(lead) || quoteReminder(lead)), [leads]);
   const recent = leads.slice(0, 8);
   const count = unread.length;
 
@@ -67,7 +68,7 @@ export function NotificationBell({ className }: { className?: string }) {
               className="flex items-center gap-2 border-b border-line bg-accent/10 px-4 py-3 text-sm"
             >
               <Clock className="size-4 shrink-0 text-accent" aria-hidden="true" />
-              {overdue.length === 1 ? "1 lead is" : `${overdue.length} leads are`} waiting over a day for a reply
+              {overdue.length === 1 ? "1 lead is" : `${overdue.length} leads are`} waiting for a follow-up
             </Link>
           ) : null}
           {recent.length === 0 ? (

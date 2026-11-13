@@ -1,7 +1,5 @@
-import { BrandMark } from "@/components/brand-mark";
-import { PoweredBy } from "@/components/powered-by";
-import { brandCssVars, fontFamily, hasBranding, type Branding } from "@/lib/branding";
-import type { CSSProperties } from "react";
+import { QuoteDocument } from "@/components/quote-document";
+import { hasBranding, type Branding } from "@/lib/branding";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -9,26 +7,31 @@ export function BrandedQuote({
   businessName,
   branding,
   text,
+  customer,
+  service,
+  contact,
 }: {
   businessName: string;
   branding: Branding;
   text: string;
+  customer?: string;
+  service?: string;
+  contact?: { phone: string; email: string };
 }) {
   if (!branding.showOnQuote || !hasBranding(branding) || !text.trim()) return null;
   return (
-    <div
-      className="mt-4 overflow-hidden rounded-2xl border border-line bg-paper"
-      style={brandCssVars(branding) as CSSProperties}
-    >
-      <div className="border-b border-line px-4 py-3" style={{ background: branding.primaryColor || undefined, color: branding.primaryColor ? "var(--color-primary-ink)" : undefined }}>
-        {branding.logoPath ? <BrandMark path={branding.logoPath} name={businessName} heightClass="h-10" /> : null}
-        {businessName ? <p className="mt-2 text-sm font-semibold tracking-tight">{businessName}</p> : null}
-      </div>
-      <pre className="whitespace-pre-wrap px-4 py-4 text-sm leading-relaxed" style={{ fontFamily: fontFamily(branding.font) }}>
-        {text}
-      </pre>
-      <PoweredBy compact className="px-4 pb-3" />
-    </div>
+    <QuoteDocument
+      className="mt-4"
+      style={branding.quoteStyle}
+      businessName={businessName}
+      contact={contact}
+      branding={branding}
+      logoPath={branding.logoOnQuote ? branding.logoPath : ""}
+      backgroundPath={branding.quoteBgPath}
+      customer={customer}
+      service={service}
+      text={text}
+    />
   );
 }
 
@@ -43,11 +46,17 @@ export function CustomerQuotePreview({
   branding,
   text,
   onBack,
+  customer,
+  service,
+  contact,
 }: {
   businessName: string;
   branding: Branding;
   text: string;
   onBack: () => void;
+  customer?: string;
+  service?: string;
+  contact?: { phone: string; email: string };
 }) {
   const branded = branding.showOnQuote && hasBranding(branding);
   return (
@@ -60,13 +69,19 @@ export function CustomerQuotePreview({
         </Button>
       </div>
       {branded ? (
-        <BrandedQuote businessName={businessName} branding={branding} text={text} />
+        <BrandedQuote businessName={businessName} branding={branding} text={text} customer={customer} service={service} contact={contact} />
       ) : (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-paper">
-          {businessName ? <p className="border-b border-line px-4 py-3 text-sm font-semibold tracking-tight">{businessName}</p> : null}
-          <pre className="whitespace-pre-wrap px-4 py-4 text-sm leading-relaxed">{text}</pre>
-          <PoweredBy compact className="px-4 pb-3" />
-        </div>
+        <QuoteDocument
+          className="mt-4"
+          style="clean"
+          businessName={businessName}
+          contact={contact}
+          branding={null}
+          logoPath=""
+          customer={customer}
+          service={service}
+          text={text}
+        />
       )}
     </div>
   );

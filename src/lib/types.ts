@@ -1,3 +1,4 @@
+import type { LinkKind, QuoteState } from "@/lib/quote-flow";
 export const STATUSES = [
   { id: "new", label: "New" },
   { id: "contacted", label: "Contacted" },
@@ -31,6 +32,14 @@ export type LeadLink = {
   source: string;
   questionnaireId: string | null;
   createdAt: string;
+  kind: LinkKind;
+  serviceId: string | null;
+  headline: string;
+  intro: string;
+  mediaPath: string;
+  mediaUrl: string;
+  ctaText: string;
+  autoSend: boolean;
 };
 
 export const QUESTION_TYPES = [
@@ -92,6 +101,17 @@ export type Lead = {
   createdAt: string;
   quote: string | null;
   quoteUpdatedAt: string | null;
+  serviceName: string;
+  quoteToken: string | null;
+  quoteState: QuoteState;
+  quoteSentAt: string | null;
+  quoteViewedAt: string | null;
+  quoteAcceptedAt: string | null;
+  quoteExpiresAt: string | null;
 };
 
-export type LeadInput = Omit<Lead, "id" | "status" | "createdAt" | "quote" | "quoteUpdatedAt">;
+export type LeadInput = Omit<
+  Lead,
+  | "id" | "status" | "createdAt" | "quote" | "quoteUpdatedAt" | "serviceName" | "quoteToken" | "quoteState"
+  | "quoteSentAt" | "quoteViewedAt" | "quoteAcceptedAt" | "quoteExpiresAt"
+>;

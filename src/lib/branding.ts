@@ -1,3 +1,5 @@
+import type { QuoteStyle } from "@/lib/quote-flow";
+
 export const BRAND_FONTS = [
   { id: "sans", label: "Clean and modern", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
   { id: "serif", label: "Classic serif", family: '"Source Serif 4", Georgia, "Times New Roman", serif' },
@@ -13,6 +15,11 @@ export type Branding = {
   font: BrandFont;
   showOnQuote: boolean;
   showOnForm: boolean;
+  logoOnQuote: boolean;
+  logoOnForm: boolean;
+  quoteStyle: QuoteStyle;
+  quoteBgPath: string;
+  quoteValidDays: number;
 };
 
 export const blankBranding: Branding = {
@@ -22,6 +29,11 @@ export const blankBranding: Branding = {
   font: "sans",
   showOnQuote: true,
   showOnForm: true,
+  logoOnQuote: true,
+  logoOnForm: true,
+  quoteStyle: "clean",
+  quoteBgPath: "",
+  quoteValidDays: 14,
 };
 
 export const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;

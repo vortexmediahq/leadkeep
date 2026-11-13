@@ -12,6 +12,9 @@ import {
   fetchServices,
   fetchTemplate,
   insertLinks,
+  updateLinkLanding,
+  type LinkLandingPatch,
+  type NewLinkOptions,
   insertQuestionnaire,
   updateQuestionnaireRow,
   deleteQuestionnaireRow,
@@ -74,7 +77,8 @@ type LeakState = {
   updateService: (id: string, patch: Partial<Omit<Service, "id">>) => void;
   removeService: (id: string) => void;
   importServices: (items: Omit<Service, "id">[]) => number;
-  addLink: (source: string, questionnaireId?: string | null) => Promise<void>;
+  addLink: (source: string, questionnaireId?: string | null, options?: NewLinkOptions) => Promise<void>;
+  updateLinkLanding: (id: string, patch: LinkLandingPatch) => void;
   setLinkQuestionnaire: (id: string, questionnaireId: string | null) => void;
   createQuestionnaire: (draft: QuestionnaireDraft) => Promise<string>;
   saveQuestionnaire: (item: Questionnaire) => void;
@@ -82,7 +86,10 @@ type LeakState = {
   removeQuestionnaire: (id: string) => void;
   updateLink: (id: string, source: string) => void;
   removeLink: (id: string) => void;
-  updateLead: (id: string, patch: Pick<Lead, "quote" | "quoteUpdatedAt">) => void;
+  updateLead: (
+    id: string,
+    patch: Partial<Pick<Lead, "quote" | "quoteUpdatedAt" | "quoteToken" | "quoteState" | "quoteSentAt" | "quoteExpiresAt">>,
+  ) => void;
   setStatus: (id: string, status: LeadStatus) => void;
 };
 
@@ -339,9 +346,25 @@ export const useLeakKeep = create<LeakState>()((set, get) => {
       run(() => insertServices(next));
       return next.length;
     },
-    addLink: async (source, questionnaireId = null) => {
-      const [link] = await insertLinks([source], questionnaireId);
+    addLink: async (source, questionnaireId = null, options = {}) => {
+      const [link] = await insertLinks([source], questionnaireId, options);
       if (link) set((state) => ({ links: [link, ...state.links] }));
+    },
+    updateLinkLanding: (id, patch) => {
+      set((state) => ({ links: state.links.map((link) => (link.id === id ? { ...link, ...patch } : link)) }));
+      later(`landing:${id}`, () => {
+        const current = get().links.find((link) => link.id === id);
+        if (!current) return Promise.resolve();
+        return updateLinkLanding(id, {
+          headline: current.headline,
+          intro: current.intro,
+          mediaPath: current.mediaPath,
+          mediaUrl: current.mediaUrl,
+          ctaText: current.ctaText,
+          autoSend: current.autoSend,
+          serviceId: current.serviceId,
+        });
+      });
     },
     setLinkQuestionnaire: (id, questionnaireId) => {
       set((state) => ({ links: state.links.map((link) => (link.id === id ? { ...link, questionnaireId } : link)) }));
