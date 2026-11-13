@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { InstallApp } from "@/components/install-app";
 import { LogoOnDark } from "@/components/mark";
 import { INTRO, IntroFilm, useIntroMotion } from "@/components/startup-screen";
 
@@ -76,6 +77,10 @@ export function AuthShell({ children }: { children: ReactNode }) {
         </div>
         <div style={motion.stageStyle} inert={intro.show ? true : undefined}>
           {children}
+          <p className="mt-4 text-center text-xs text-white/60">
+            LeadKeep is powered by Orbit, our secure app platform, so your app address is app.orbit-online.com.
+          </p>
+          <InstallApp tone="dark" className="mt-3" />
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { InstallApp } from "@/components/install-app";
 import { SetupRing } from "@/components/setup-ring";
 import { Field, TextInput } from "@/components/ui/fields";
 import { useAlerts } from "@/lib/alert-store";
@@ -88,6 +89,7 @@ function Dashboard() {
       </header>
 
       <SetupRing />
+      <InstallApp />
 
       <section aria-label="Money left on the table" className="rounded-3xl border border-accent/40 bg-accent-soft p-4 shadow-panel">
         <p className="text-sm font-medium text-ink">Money left on the table</p>
