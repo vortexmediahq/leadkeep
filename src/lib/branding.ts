@@ -85,3 +85,52 @@ export function brandCssVars(branding: Pick<Branding, "primaryColor" | "accentCo
   }
   return vars;
 }
+
+export const LOGO_MIME_BY_EXT: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+};
+
+/** Some computers send an empty or odd file type (SVG and "image/jpg" most often), so fall back to the file ending. */
+export function logoMimeType(file: { type: string; name: string }): string {
+  const type = (file.type || "").toLowerCase();
+  if (type === "image/jpg" || type === "image/pjpeg") return "image/jpeg";
+  if (type === "image/png" || type === "image/jpeg" || type === "image/webp" || type === "image/svg+xml") return type;
+  const ext = file.name.toLowerCase().split(".").pop() ?? "";
+  return LOGO_MIME_BY_EXT[ext] ?? "";
+}
+
+export const BRANDING_SETUP_MESSAGE =
+  "Your branding database update hasn't been applied yet, so this can't be saved. Ask Avery for the branding update (20261112120000) and run it once.";
+
+type ErrorLike = { code?: unknown; message?: unknown; statusCode?: unknown; status?: unknown };
+
+/** True when the branding columns do not exist yet in the live database (the batch 2 SQL has not been run). */
+export function isMissingBrandingColumns(error: ErrorLike | null | undefined): boolean {
+  if (!error) return false;
+  const code = String(error.code ?? "");
+  const message = String(error.message ?? "").toLowerCase();
+  return code === "42703" || code === "PGRST204" || (message.includes("column") && (message.includes("does not exist") || message.includes("schema cache")));
+}
+
+/** A plain-words reason for a failed logo upload, so the real cause is not hidden. */
+export function logoUploadMessage(error: ErrorLike | null | undefined): string {
+  const message = String(error?.message ?? "").toLowerCase();
+  const status = String(error?.statusCode ?? error?.status ?? "");
+  if (message.includes("bucket not found") || (status === "404" && message.includes("bucket"))) {
+    return "Logo storage isn't switched on yet: the branding database update hasn't been applied. Ask Avery for the branding update (20261112120000) and run it once.";
+  }
+  if (message.includes("row-level security") || message.includes("not authorized") || status === "403" || status === "401") {
+    return "We couldn't confirm it's you. Log out, log back in and try the logo again.";
+  }
+  if (message.includes("exceeded") || message.includes("too large") || status === "413") {
+    return "That logo is too big. Please keep it under 2 MB.";
+  }
+  if (message.includes("mime") || message.includes("not supported") || message.includes("invalid file")) {
+    return "That file type isn't allowed. Please use a PNG, JPG, WEBP or SVG image.";
+  }
+  return "We couldn't upload that logo. Check your connection and try again, or try a different image.";
+}

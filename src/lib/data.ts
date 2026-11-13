@@ -2,7 +2,18 @@ import { toEntitlements, type Entitlements } from "@/lib/entitlements";
 import { toAllowance, type Allowance } from "@/lib/plan";
 import { supabase } from "@/lib/supabase";
 import { parseQuestions } from "@/lib/question-templates";
-import { blankBranding, logoUrl, parseFont, parseHexColor, type Branding } from "@/lib/branding";
+import {
+  BRANDING_SETUP_MESSAGE,
+  blankBranding,
+  hasBranding,
+  isMissingBrandingColumns,
+  logoMimeType,
+  logoUploadMessage,
+  logoUrl,
+  parseFont,
+  parseHexColor,
+  type Branding,
+} from "@/lib/branding";
 import type { Business, Lead, LeadInput, LeadLink, LeadResponse, LeadStatus, Question, Questionnaire, QuoteTemplate, Service } from "@/lib/types";
 
 type ServiceRow = { id: string; name: string; description: string; price: string; notes: string };
@@ -302,17 +313,31 @@ export async function fetchProfile(): Promise<StoredProfile | null> {
 
 export async function saveProfile(business: Business, branding?: Branding) {
   const base = { ...business, updated_at: new Date().toISOString() };
+  // Anything beyond the plain defaults means the owner has actually set up branding.
+  const wantsBranding =
+    !!branding && (hasBranding(branding) || branding.font !== "sans" || !branding.showOnQuote || !branding.showOnForm);
+  let brandingError: { code?: string; message?: string } | null = null;
   if (branding) {
     const { error } = await supabase
       .from("business_profiles")
       .upsert({ ...base, ...brandingColumns(branding) }, { onConflict: "user_id" });
     if (!error) return;
+    brandingError = error;
   }
+  // Older database without the branding columns: keep saving the business details as before.
   const { error } = await supabase.from("business_profiles").upsert(base, { onConflict: "user_id" });
   if (error) fail("save your business details", error);
+  // Do not pretend branding was saved when it was not (this used to fail silently).
+  if (wantsBranding) {
+    throw new Error(
+      isMissingBrandingColumns(brandingError)
+        ? BRANDING_SETUP_MESSAGE
+        : `We couldn't save your branding. ${brandingError?.message ?? ""}`.trim(),
+    );
+  }
 }
 
-const LOGO_TYPES: Record<string, string> = {
+const LOGO_EXT: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
@@ -320,12 +345,13 @@ const LOGO_TYPES: Record<string, string> = {
 };
 
 export async function uploadLogo(userId: string, file: File): Promise<string> {
-  const ext = LOGO_TYPES[file.type];
+  const mime = logoMimeType(file);
+  const ext = LOGO_EXT[mime];
   if (!ext) throw new Error("Please use a PNG, JPG, WEBP or SVG image.");
   if (file.size > 2 * 1024 * 1024) throw new Error("Please keep the logo under 2 MB.");
   const path = `${userId}/logo.${ext}`;
-  const { error } = await supabase.storage.from("brand-assets").upload(path, file, { upsert: true, contentType: file.type });
-  if (error) throw new Error("We couldn't upload that logo. Try a different image.");
+  const { error } = await supabase.storage.from("brand-assets").upload(path, file, { upsert: true, contentType: mime });
+  if (error) throw new Error(logoUploadMessage(error as { message?: string; statusCode?: string }));
   return path;
 }
 
