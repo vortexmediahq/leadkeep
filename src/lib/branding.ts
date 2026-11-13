@@ -134,3 +134,11 @@ export function logoUploadMessage(error: ErrorLike | null | undefined): string {
   }
   return "We couldn't upload that logo. Check your connection and try again, or try a different image.";
 }
+
+/** Branding only applies on plans that include it. Saved branding is kept, just not shown, if a plan drops to Free. */
+export function effectiveBranding(branding: Branding, allowed: boolean): Branding {
+  return allowed ? branding : { ...blankBranding };
+}
+
+/** The value of the "Don't see your questions? Create new" choice in the questions dropdown. */
+export const CREATE_NEW_QUESTIONS = "__create_new__";

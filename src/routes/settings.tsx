@@ -94,7 +94,7 @@ function Settings() {
               <input
                 type="radio"
                 name="alert-channel"
-                className="mt-1 size-4 accent-[#FF5F03]"
+                className="mt-1 size-4 accent-accent"
                 checked={locked ? false : emailOk ? channel === option.id : option.id === "app"}
                 disabled={locked}
                 onChange={() => {

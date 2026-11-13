@@ -54,3 +54,13 @@ test("logo upload errors are explained in plain words", () => {
   assert.match(logoUploadMessage({ message: "mime type image/gif is not supported" }), /PNG, JPG/);
   assert.match(logoUploadMessage({ message: "Failed to fetch" }), /connection/);
 });
+
+test("branding is hidden on plans without it, and kept for when they upgrade", async () => {
+  const { effectiveBranding, CREATE_NEW_QUESTIONS } = await import("./branding.ts");
+  const saved = { ...blankBranding, logoPath: "u/logo.png", primaryColor: "#112233" };
+  assert.deepEqual(effectiveBranding(saved, true), saved);
+  assert.deepEqual(effectiveBranding(saved, false), blankBranding);
+  assert.equal(hasBranding(effectiveBranding(saved, false)), false);
+  assert.equal(saved.logoPath, "u/logo.png");
+  assert.equal(CREATE_NEW_QUESTIONS, "__create_new__");
+});

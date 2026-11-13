@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Check, Copy, Plus } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextInput } from "@/components/ui/fields";
+import { CREATE_NEW_QUESTIONS } from "@/lib/branding";
 import { SOURCE_OPTIONS } from "@/lib/question-templates";
 import { useLeakKeep } from "@/lib/store";
 import type { LeadLink } from "@/lib/types";
@@ -14,7 +15,9 @@ export const Route = createFileRoute("/links")({
   component: LinksPage,
 });
 
-const SOURCE_HINT = "Where you'll share this link, so you can see which channel brings leads.";
+const SOURCE_LABEL = "Where you'll share this link";
+const SOURCE_HINT =
+  "This tags every lead with where it came from (for example Facebook or Instagram), so you can see which post brings you the most leads. It does not change what the customer sees.";
 
 function LinksPage() {
   return (
@@ -34,6 +37,8 @@ function LinksDesk() {
   const questionnaires = useLeakKeep((state) => state.questionnaires);
   const questionnairesReady = useLeakKeep((state) => state.questionnairesReady);
   const setLinkQuestionnaire = useLeakKeep((state) => state.setLinkQuestionnaire);
+  const navigate = useNavigate();
+  const goCreateQuestions = () => void navigate({ to: "/questions", hash: "templates" });
   const [preset, setPreset] = useState<string>(SOURCE_OPTIONS[0]);
   const [custom, setCustom] = useState("");
   const [questionnaireId, setQuestionnaireId] = useState("");
@@ -160,7 +165,10 @@ function LinksDesk() {
                 id="new-questionnaire"
                 value={questionnaireId}
                 disabled={!questionnairesReady}
-                onChange={(event) => setQuestionnaireId(event.target.value)}
+                onChange={(event) => {
+                  if (event.target.value === CREATE_NEW_QUESTIONS) return goCreateQuestions();
+                  setQuestionnaireId(event.target.value);
+                }}
               >
                 <option value="">Standard (Quick enquiry)</option>
                 {questionnaires.map((item) => (
@@ -168,6 +176,7 @@ function LinksDesk() {
                     {item.name || "Untitled questionnaire"}
                   </option>
                 ))}
+                <option value={CREATE_NEW_QUESTIONS}>Don't see your questions? Create new…</option>
               </SelectInput>
             </Field>
             <div>
@@ -208,7 +217,7 @@ function LinksDesk() {
             const url = origin ? `${origin}${path}` : path;
             return (
               <li key={link.id} className="rounded-3xl border border-line bg-paper p-4 shadow-panel">
-                <Field id={`source-${link.id}`} label="Source" hint={SOURCE_HINT}>
+                <Field id={`source-${link.id}`} label={SOURCE_LABEL} hint={SOURCE_HINT}>
                   <TextInput
                     id={`source-${link.id}`}
                     value={link.source}
@@ -232,7 +241,10 @@ function LinksDesk() {
                       <SelectInput
                         id={`questions-${link.id}`}
                         value={link.questionnaireId ?? ""}
-                        onChange={(event) => setLinkQuestionnaire(link.id, event.target.value || null)}
+                        onChange={(event) => {
+                          if (event.target.value === CREATE_NEW_QUESTIONS) return goCreateQuestions();
+                          setLinkQuestionnaire(link.id, event.target.value || null);
+                        }}
                       >
                         <option value="">Standard (Quick enquiry)</option>
                         {questionnaires.map((item) => (
@@ -240,11 +252,17 @@ function LinksDesk() {
                             {item.name || "Untitled questionnaire"}
                           </option>
                         ))}
+                        <option value={CREATE_NEW_QUESTIONS}>Don't see your questions? Create new…</option>
                       </SelectInput>
                     </Field>
                   </div>
                 ) : null}
                 <div className="mt-4 flex flex-wrap gap-2">
+                  <Button size="sm" variant="secondary" asChild>
+                    <Link to="/l/$linkId" params={{ linkId: link.slug }} search={{ preview: "1" }}>
+                      Preview as customer
+                    </Link>
+                  </Button>
                   <Button size="sm" variant="secondary" asChild>
                     <Link to="/l/$linkId" params={{ linkId: link.slug }} target="_blank">
                       Open form

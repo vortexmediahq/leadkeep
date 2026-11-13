@@ -2,11 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Copy, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { Capture } from "@/components/lead-form";
 import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/fields";
 import { blankQuestion, fromTemplate, QUESTION_TEMPLATES } from "@/lib/question-templates";
 import { canAddQuestionnaire } from "@/lib/entitlements";
-import { useAccess } from "@/lib/use-access";
+import { useAccess, useEffectiveBranding } from "@/lib/use-access";
 import { useLeakKeep } from "@/lib/store";
 import { QUESTION_TYPES, type Question, type QuestionType, type Questionnaire } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -48,7 +49,30 @@ function Questions() {
     }
   }
 
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const business = useLeakKeep((state) => state.business);
+  const services = useLeakKeep((state) => state.services);
+  const branding = useEffectiveBranding();
+
   const open = questionnaires.find((item) => item.id === openId) ?? null;
+  const previewing = questionnaires.find((item) => item.id === previewId) ?? null;
+
+  if (previewing) {
+    return (
+      <Capture
+        slug="preview"
+        onAnother={() => undefined}
+        preview={{ onBack: () => setPreviewId(null) }}
+        form={{
+          source: "Preview",
+          business: { name: business.name, trade: business.trade, city: business.city },
+          services: services.map((service) => service.name).filter((name) => name.trim()),
+          questionnaire: { name: previewing.name, intro: previewing.intro, questions: previewing.questions },
+          branding,
+        }}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
@@ -138,6 +162,9 @@ function Questions() {
               <div className="flex gap-2">
                 <Button size="sm" variant="secondary" onClick={() => setOpenId(openId === item.id ? null : item.id)}>
                   {openId === item.id ? "Close" : "Edit"}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setPreviewId(item.id)}>
+                  Preview as customer
                 </Button>
                 <Button
                   size="sm"
@@ -251,7 +278,7 @@ function Editor({ item, onClosed }: { item: Questionnaire; onClosed: () => void 
                 <label className="mr-auto flex items-center gap-2 text-sm text-ink">
                   <input
                     type="checkbox"
-                    className="size-4 accent-[#0b1f3b]"
+                    className="size-4 accent-primary"
                     checked={question.required}
                     onChange={(event) => patchQuestion(question.id, { required: event.target.checked })}
                   />

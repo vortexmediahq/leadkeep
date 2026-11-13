@@ -1,10 +1,12 @@
 import { useEffect, useState, type ChangeEvent } from "react";
+import { Link } from "@tanstack/react-router";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextInput } from "@/components/ui/fields";
 import { BRAND_FONTS, HEX_COLOR, hasBranding, parseHexColor } from "@/lib/branding";
 import { useSession } from "@/lib/session";
 import { useLeakKeep } from "@/lib/store";
+import { useAccess } from "@/lib/use-access";
 
 export function SettingsBranding() {
   const userId = useSession((state) => state.user?.id ?? "");
@@ -14,6 +16,7 @@ export function SettingsBranding() {
   const updateBranding = useLeakKeep((state) => state.updateBranding);
   const setLogo = useLeakKeep((state) => state.setLogo);
   const clearLogo = useLeakKeep((state) => state.clearLogo);
+  const locked = !useAccess().features.customBranding;
   const [logoError, setLogoError] = useState("");
   const [uploading, setUploading] = useState(false);
 
@@ -44,7 +47,19 @@ export function SettingsBranding() {
         Add a logo and colours so your enquiry form and quotes look like you. Your logo is never stretched.
       </p>
 
-      <div className="mt-4 flex flex-col gap-4">
+      {locked ? (
+        <div className="mt-3 rounded-2xl border border-accent/30 bg-accent-soft p-3" role="status">
+          <p className="text-sm font-medium text-ink">Your own logo and colours are on Care and Growth</p>
+          <p className="mt-1 text-sm text-ink-soft">
+            Upgrade your plan to put your branding on your enquiry form, quotes and this app.
+          </p>
+          <Button asChild size="sm" variant="accent" className="mt-3">
+            <Link to="/pricing">Upgrade your plan</Link>
+          </Button>
+        </div>
+      ) : null}
+
+      <fieldset disabled={locked} className={locked ? "mt-4 flex flex-col gap-4 opacity-50" : "mt-4 flex flex-col gap-4"} aria-disabled={locked}>
         <div>
           <p className="text-sm font-medium">Logo</p>
           <div className="mt-2 flex flex-wrap items-center gap-4">
@@ -121,7 +136,7 @@ export function SettingsBranding() {
         <label className="flex items-start gap-3 rounded-2xl border border-line px-4 py-3">
           <input
             type="checkbox"
-            className="mt-1 size-4 accent-[#FF5F03]"
+            className="mt-1 size-4 accent-accent"
             checked={branding.showOnForm}
             onChange={(event) => updateBranding({ showOnForm: event.target.checked })}
           />
@@ -134,7 +149,7 @@ export function SettingsBranding() {
         <label className="flex items-start gap-3 rounded-2xl border border-line px-4 py-3">
           <input
             type="checkbox"
-            className="mt-1 size-4 accent-[#FF5F03]"
+            className="mt-1 size-4 accent-accent"
             checked={branding.showOnQuote}
             onChange={(event) => updateBranding({ showOnQuote: event.target.checked })}
           />
@@ -147,7 +162,7 @@ export function SettingsBranding() {
         {hasBranding(branding) ? (
           <p className="text-sm text-muted">Once your branding is on, the "Powered by LeadKeep" line stays small and sits under your logo or at the bottom.</p>
         ) : null}
-      </div>
+      </fieldset>
     </section>
   );
 }

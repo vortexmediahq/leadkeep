@@ -9,7 +9,9 @@ import { NotificationBell } from "@/components/notification-bell";
 import { UnusualActivityBanner } from "@/components/unusual-activity";
 import { PlanCard, PlanPill, TesterReminder } from "@/components/plan-card";
 import { signOut, useSession } from "@/lib/session";
+import { BrandMark } from "@/components/brand-mark";
 import { hasBranding } from "@/lib/branding";
+import { useEffectiveBranding } from "@/lib/use-access";
 import { useLeakKeep } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -141,7 +143,7 @@ function IncomingLead() {
 function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const business = useLeakKeep((state) => state.business);
-  const branding = useLeakKeep((state) => state.branding);
+  const branding = useEffectiveBranding();
   const branded = hasBranding(branding);
   const fresh = useLeakKeep((state) => state.leads.filter((lead) => lead.status === "new").length);
   const saveError = useLeakKeep((state) => state.saveError);
@@ -153,7 +155,11 @@ function Shell({ children }: { children: ReactNode }) {
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-paper md:flex">
         <div className="px-4 py-5">
           <div className="flex items-center justify-between gap-2">
-            <Logo className="w-36" />
+            {branding.logoPath ? (
+              <BrandMark path={branding.logoPath} name={business.name} heightClass="h-10" className="min-w-0 flex-1" />
+            ) : (
+              <Logo className="w-36" />
+            )}
             <NotificationBell />
           </div>
           <p className="mt-1 text-sm text-muted">Lead inbox</p>
@@ -209,7 +215,11 @@ function Shell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-10 border-b border-line bg-paper px-4 py-3 md:hidden">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
-              <Logo className="h-7 w-auto" />
+              {branding.logoPath ? (
+                <BrandMark path={branding.logoPath} name={business.name} heightClass="h-7" />
+              ) : (
+                <Logo className="h-7 w-auto" />
+              )}
               <p className="truncate text-sm text-muted">{business.name || email}</p>
             </div>
             <PlanPill />

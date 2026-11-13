@@ -3,7 +3,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Check, ChevronLeft, Copy, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { BrandedQuote, brandedQuotePlainText } from "@/components/branded-quote";
+import { BrandedQuote, CustomerQuotePreview, brandedQuotePlainText } from "@/components/branded-quote";
 import { ContactButtons } from "@/components/contact-buttons";
 import { StatusBadge } from "@/components/status-badge";
 import { needsFollowUp } from "@/lib/alerts";
@@ -12,7 +12,7 @@ import { SelectInput, TextArea } from "@/components/ui/fields";
 import { generateQuote } from "@/lib/quote.functions";
 import { quotesLeft } from "@/lib/plan";
 import { useLeakKeep } from "@/lib/store";
-import { useAccess, useGatedLeads } from "@/lib/use-access";
+import { useAccess, useEffectiveBranding, useGatedLeads } from "@/lib/use-access";
 import { supabase } from "@/lib/supabase";
 import { STATUSES, type LeadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -33,7 +33,8 @@ function LeadPage() {
 
 function LeadDetail({ leadId }: { leadId: string }) {
   const businessName = useLeakKeep((state) => state.business.name);
-  const branding = useLeakKeep((state) => state.branding);
+  const branding = useEffectiveBranding();
+  const [previewing, setPreviewing] = useState(false);
   const leads = useGatedLeads();
   const lead = leads.find((item) => item.id === leadId);
   const access = useAccess();
@@ -160,6 +161,10 @@ function LeadDetail({ leadId }: { leadId: string }) {
     ["Budget", lead.budget],
     ["Access", lead.accessNotes],
   ] as const;
+
+  if (previewing) {
+    return <CustomerQuotePreview businessName={businessName} branding={branding} text={text} onBack={() => setPreviewing(false)} />;
+  }
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5">
@@ -372,6 +377,9 @@ function LeadDetail({ leadId }: { leadId: string }) {
           >
             {copied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
             {copied ? "Copied to clipboard" : "Copy Quote"}
+          </Button>
+          <Button className="mt-2 w-full" variant="secondary" onClick={() => setPreviewing(true)} disabled={!text.trim() || pending}>
+            Preview as customer
           </Button>
           {lead.quoteUpdatedAt ? (
             <p className="mt-2 text-sm text-muted">
