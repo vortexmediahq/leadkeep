@@ -1,0 +1,39 @@
+name: Supabase keep-awake
+
+on:
+  schedule:
+    # Every 3 days at 08:00 SAST (06:00 UTC)
+    - cron: "0 6 */3 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-keep-awake
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Ping LeadKeep Supabase
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Tiny read query
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "Missing SUPABASE_URL or SUPABASE_ANON_KEY repo secret" >&2
+            exit 1
+          fi
+          code=$(curl -sS -o /tmp/keepawake-body -w "%{http_code}" --max-time 30 \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Accept: application/json" \
+            -H "Range: 0-0" \
+            "${SUPABASE_URL}/rest/v1/whop_variants?select=plan_id&limit=1")
+          echo "HTTP ${code}"
+          if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
+            echo "Keep-awake request failed" >&2
+            exit 1
+          fi
