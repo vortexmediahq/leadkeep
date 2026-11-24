@@ -39,6 +39,13 @@ function friendlyAuthError(message: string) {
   if (text.includes("invalid login")) return "That email and password don't match an account.";
   if (text.includes("already registered") || text.includes("already exists"))
     return "An account with this email already exists. Log in instead.";
+  if (
+    text.includes("rate limit") ||
+    text.includes("over_email_send_rate_limit") ||
+    text.includes("too many") ||
+    text.includes("429")
+  )
+    return "Too many tries, please wait a few minutes and try again.";
   if (text.includes("password")) return "Use a password with at least 6 characters.";
   if (text.includes("email")) return "Enter a valid email address.";
   if (text.includes("fetch") || text.includes("network")) return "Couldn't reach the server. Check your connection.";
